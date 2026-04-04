@@ -9,7 +9,7 @@ test("resolveBridgeConfig returns localhost defaults when env is empty", () => {
   assert.deepEqual(config, {
     host: "127.0.0.1",
     port: 47127,
-    timeoutMs: 5_000
+    timeoutMs: 15_000
   });
 });
 

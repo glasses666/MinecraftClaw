@@ -113,6 +113,27 @@ class MinecraftClawBridgeServerTest {
 	}
 
 	@Test
+	void localSpaceEndpointAcceptsExpandedHighResolutionScanBounds() throws IOException, InterruptedException {
+		StubController controller = new StubController(snapshot(26, 269, 13));
+		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);
+		server.start();
+
+		HttpResponse<String> response = httpClient.send(
+			HttpRequest.newBuilder(server.uri("/space/local"))
+				.header("content-type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString("{\"radius\":20,\"down\":24,\"up\":24}"))
+				.build(),
+			HttpResponse.BodyHandlers.ofString()
+		);
+
+		assertEquals(200, response.statusCode());
+		assertNotNull(controller.lastSpaceScanRequest);
+		assertEquals(20, controller.lastSpaceScanRequest.radius());
+		assertEquals(24, controller.lastSpaceScanRequest.down());
+		assertEquals(24, controller.lastSpaceScanRequest.up());
+	}
+
+	@Test
 	void placeBlockEndpointPassesBlockPlacementToController() throws IOException, InterruptedException {
 		StubController controller = new StubController(snapshot(26, 269, 13));
 		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);

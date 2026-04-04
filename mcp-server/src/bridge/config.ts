@@ -8,7 +8,7 @@ export interface BridgeConfig {
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 47_127;
-const DEFAULT_TIMEOUT_MS = 5_000;
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 export function resolveBridgeConfig(env: BridgeEnv = process.env): BridgeConfig {
   return {
