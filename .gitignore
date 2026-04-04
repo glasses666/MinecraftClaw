@@ -5,6 +5,7 @@ build/
 out/
 run/
 mod/build/
+mod/logs/
 mcp-server/dist/
 mcp-server/node_modules/
 .npm-cache/

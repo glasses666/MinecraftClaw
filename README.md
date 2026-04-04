@@ -15,11 +15,33 @@ The repository now contains:
 - a Fabric 1.20.1 Gradle module with command-based smoke tests
 - a TypeScript MCP server workspace
 - the first bridge configuration test
+- raw world snapshot export on player join and via command
 
 ### Fabric smoke-test commands
 
 - `/mcclaw_ping`
 - `/mcclaw_player_state`
+- `/mcclaw_dump_raw`
+
+### Raw export bootstrap
+
+The current Fabric bootstrap writes a raw environment snapshot when a player joins a world.
+
+The export is written under:
+
+- `minecraft/minecraftclaw/exports/<timestamp>-<player>/`
+
+Each export directory contains:
+
+- `scan_meta.json`
+- `player_state.json`
+- `inventory.json`
+- `local_blocks.json`
+- `block_entities.json`
+- `entities.json`
+- `surface_map.json`
+
+This is intentionally uncleaned raw data so the next step can be driven by real output shape instead of guesses.
 
 ## Current Milestone
 
