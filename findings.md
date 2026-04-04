@@ -65,6 +65,8 @@
 - `COZY_CABIN_V1` is the first reusable medium blueprint: 7x8 footprint, porch, oak/spruce shell, dark-oak roof, windows, door, bed, chest, crafting table, and lanterns
 - The planner now prefers the fewest supporting columns under the footprint, which biases it toward detached empty air instead of stacking the next house above the current village platform
 - Live verification built a non-overlapping cabin at `27,279,-2` with zero occupied-volume overlap and zero POI overlap before construction
+- A second blueprint is now proven through the same flow: `SKY_GAZEBO_V1` built successfully at `28,283,-9` with zero overlap and only the expected new barrel/campfire POIs
+- The building workflow is now stable enough to package as a reusable skill: `dist/minecraftclaw-builder.skill`
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -89,6 +91,7 @@
 | Return only non-empty inventory slots from the bridge | Empty-slot spam adds no planning value and wastes payload budget |
 | Evaluate whole-blueprint bounds before construction instead of only checking candidate anchors | Anchor-only checks miss collisions with bridges, roofs, and walkways that cut through the house volume |
 | Prefer detached empty-air placements over “technically clear” stacked placements | A build volume can be collision-free yet still feel visually merged with the structure below |
+| Prove planner reuse with at least one non-house structure | A second blueprint shows the system is a general build workflow, not a one-off cabin script |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -107,6 +110,7 @@
 | The selected Prism instance was no longer running during live wrapper verification | `lsof` showed nothing listening on `127.0.0.1:47127`, and `latest.log` ended with a normal save-and-exit sequence |
 | The first built cabin overlapped the visible village structure despite looking coherent | The old build flow only filtered anchor points and did not reason about the full building envelope |
 | Pure “clear volume” scoring still picked sites above the existing platform | Ranking now minimizes the number of occupied support columns underneath the footprint before distance |
+| A builder workflow without packaging would stay trapped in the current thread | Captured the process as `minecraftclaw-builder` so future sessions can reuse it directly |
 
 ## Resources
 - Workspace: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot
@@ -146,6 +150,8 @@
 - New admin tools: `place_block`, `break_block`, `fill_box`, `clear_box`, `run_command`
 - New extended admin tools: `get_inventory`, `summon_entity`, `set_time`, `set_weather`, `give_item`
 - New builder primitives: `assessBlueprintPlacement`, `findFloatingPlacement`, `buildExecutionPlan`, `COZY_CABIN_V1`
+- New blueprint: `SKY_GAZEBO_V1`
+- New packaged skill: `/Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot/dist/minecraftclaw-builder.skill`
 
 ## Visual/Browser Findings
 - User screenshot shows a Fabric 1.20.1 setup baseline with LWJGL 3 3.3.1, Minecraft 1.20.1, Intermediary Mappings 1.20.1, and Fabric Loader 0.17.2

@@ -4,7 +4,7 @@
 Extend the verified Fabric 1.20.1 + MCP bridge so the agent can reconstruct and semantically interpret the player's nearby 3D space, not just read player position and teleport.
 
 ## Current Phase
-Phase 13
+Phase 14
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -89,6 +89,13 @@ Phase 13
 - [x] Add a reusable medium cabin blueprint and absolute execution-plan expansion
 - [x] Add a planner that prefers truly empty nearby space instead of stacked overlap
 - [x] Verify the planner in the live game and build a non-overlapping cabin
+- [x] Commit and push the milestone
+- **Status:** complete
+
+### Phase 14: Second Blueprint & Builder Skill
+- [x] Add a second reusable structure blueprint for a non-house build
+- [x] Verify the second blueprint through live in-game construction
+- [x] Create and package a reusable MinecraftClaw builder skill
 - [ ] Commit and push the milestone
 - **Status:** in_progress
 
@@ -100,6 +107,7 @@ Phase 13
 5. Which small set of world actions gives near-full creative/admin control without turning the MCP layer into raw command soup?
 6. Which higher-level admin actions should stay typed even though `run_command` can already express them?
 7. How should the planner rank “clear but floating above a structure” versus “clear and fully detached in open air”?
+8. Which parts of the current build workflow should be frozen into a reusable skill versus kept as evolving project code?
 
 ## Decisions Made
 | Decision | Rationale |
@@ -120,6 +128,7 @@ Phase 13
 | Implement summon/time/weather/give as typed MCP wrappers over `run_command` | These actions work immediately against the existing bridge command executor while keeping the tool surface ergonomic |
 | Keep build-site planning in `mcp-server` for now | Placement heuristics change faster than bridge contracts, and the current scan already contains enough information to reason about collisions |
 | Prefer the fewest supporting columns under a floating build footprint | This biases the planner toward genuinely detached empty space instead of stacking new cabins above existing platforms |
+| Package the live-building workflow as a skill now instead of waiting for full autonomy | The current process is already stable and reusable even though the planner and blueprint library will keep expanding |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -134,6 +143,7 @@ Phase 13
 | Live MCP debugging initially failed with `structuredContent.player` undefined | 1 | Inspected the raw SDK result and confirmed the real issue was an error result shape rather than a success payload |
 | Live MCP calls later failed with `fetch failed` | 1 | Confirmed the selected Prism instance had already exited, so nothing was listening on `127.0.0.1:47127` |
 | A “clear” floating placement could still sit directly above the densest existing platform | 1 | Rank candidate sites by the number of supporting columns underneath the footprint before distance to the player |
+| The builder needed a second structure type to prove the workflow was reusable | 1 | Added `SKY_GAZEBO_V1` and verified it through the same planner and execution path as the cabin |
 
 ## Notes
 - Update phase status as research converges

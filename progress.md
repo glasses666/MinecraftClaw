@@ -238,6 +238,27 @@
   - mcp-server/src/builder/planner.ts (created)
   - mcp-server/test/build-planner.test.ts (created)
 
+### Phase 13: Second Blueprint & Builder Skill
+- **Status:** complete
+- **Started:** 2026-04-05 00:57 Asia/Shanghai
+- Actions taken:
+  - Added `SKY_GAZEBO_V1` as a second reusable blueprint to prove the planner is not house-specific
+  - Wrote a failing-then-passing planner test for the gazebo blueprint
+  - Re-ran the full `mcp-server` suite and TypeScript build
+  - Used the same live planner to place and build a detached gazebo at `28,283,-9`
+  - Initialized, authored, validated, and packaged a reusable `minecraftclaw-builder` skill
+- Files created/modified:
+  - README.md (updated)
+  - task_plan.md (updated)
+  - findings.md (updated)
+  - progress.md (updated)
+  - mcp-server/src/builder/planner.ts (updated)
+  - mcp-server/test/build-planner.test.ts (updated)
+  - skills/minecraftclaw-builder/SKILL.md (created)
+  - skills/minecraftclaw-builder/references/blueprint-patterns.md (created)
+  - skills/minecraftclaw-builder/references/blueprints.md (created)
+  - dist/minecraftclaw-builder.skill (created)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -279,6 +300,11 @@
 | Builder TypeScript build | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm run build` | TypeScript compile succeeds with planner module | Succeeds | ✓ |
 | Live planner verification | `scan_local_space radius=12 down=4 up=12` + `findFloatingPlacement` | Returns a zero-overlap cabin site | Chose `27,279,-2` with `overlappingBlockCount=0`, `overlappingPois=[]`, `supportingColumnCount=0` | ✓ |
 | Live cabin build | Execute `buildExecutionPlan(COZY_CABIN_V1, {27,279,-2})` through MCP tools | Cabin is built without intersecting existing structure | 23 actions executed; follow-up scan found only the new bed/chest/crafting-table POIs inside the build bounds | ✓ |
+| Gazebo blueprint test (red) | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm test -- test/build-planner.test.ts` before `SKY_GAZEBO_V1` existed | Fails for missing export | Failed because `planner.js` did not export `SKY_GAZEBO_V1` | ✓ |
+| Gazebo blueprint test (green) | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm test -- test/build-planner.test.ts` | Planner tests pass with second blueprint | 4/4 passing in that file; full suite still green | ✓ |
+| Live gazebo build | Execute `buildExecutionPlan(SKY_GAZEBO_V1, {28,283,-9})` through MCP tools | Gazebo is built at a detached zero-overlap site | 21 actions executed; follow-up scan found the new barrel and soul campfire POIs only | ✓ |
+| Builder skill validation | `python3 .../quick_validate.py skills/minecraftclaw-builder` | Skill validates cleanly | `Skill is valid!` | ✓ |
+| Builder skill packaging | `python3 .../package_skill.py skills/minecraftclaw-builder dist` | `.skill` artifact produced | `dist/minecraftclaw-builder.skill` created successfully | ✓ |
 | Mod action build | `./gradlew :mod:build --no-daemon` | Remapped jar builds with new action surface | Succeeds | ✓ |
 
 ## Error Log

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   COZY_CABIN_V1,
+  SKY_GAZEBO_V1,
   assessBlueprintPlacement,
   buildExecutionPlan,
   findFloatingPlacement
@@ -45,6 +46,19 @@ test("buildExecutionPlan emits absolute fill, block, and command actions for the
   assert.equal(plan[0]?.kind, "fill");
   assert.equal(plan.some((step) => step.kind === "command"), true);
   assert.equal(plan.some((step) => step.kind === "block"), true);
+});
+
+test("buildExecutionPlan emits a lantern-heavy gazebo plan with open sides", () => {
+  const placement = findFloatingPlacement(sampleSkyPlatformSpace(), SKY_GAZEBO_V1, {
+    clearanceAboveSurface: 2
+  });
+
+  assert.notEqual(placement, null);
+  const plan = buildExecutionPlan(SKY_GAZEBO_V1, placement!.origin);
+
+  assert.ok(plan.length >= 10);
+  assert.equal(plan.some((step) => step.kind === "command"), true);
+  assert.equal(plan.some((step) => step.kind === "fill"), true);
 });
 
 function sampleSkyPlatformSpace() {

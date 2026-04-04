@@ -109,10 +109,23 @@ Current behavior:
 - `assessBlueprintPlacement` checks a whole building-sized volume against occupied runs and POIs
 - `findFloatingPlacement` searches the current local scan for a non-overlapping floating origin
 - `buildExecutionPlan` expands a reusable blueprint into absolute block, fill, and command steps
-- `COZY_CABIN_V1` is the first reusable medium cabin blueprint
+- `COZY_CABIN_V1` and `SKY_GAZEBO_V1` are the first reusable build blueprints
 
 This is not a general autonomous builder yet, but it is the first version that can:
 
 1. reject house sites that would intersect an existing structure
 2. choose a clear build box automatically
 3. execute a larger, nicer house than the initial box test
+
+## Builder Skill
+
+The repo now also includes a reusable skill for future MinecraftClaw building sessions:
+
+- source: `skills/minecraftclaw-builder/`
+- packaged artifact: `dist/minecraftclaw-builder.skill`
+
+The skill captures the current live-building workflow:
+- scan first
+- reject overlapping sites by default
+- use blueprint execution plans instead of ad hoc coordinates
+- re-scan after construction

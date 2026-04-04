@@ -88,6 +88,36 @@ export const COZY_CABIN_V1: StructureBlueprint = {
   ]
 };
 
+export const SKY_GAZEBO_V1: StructureBlueprint = {
+  id: "sky_gazebo_v1",
+  width: 7,
+  depth: 7,
+  height: 6,
+  steps: [
+    fill({ x: 1, y: 0, z: 1 }, { x: 5, y: 0, z: 5 }, "minecraft:spruce_planks"),
+    fill({ x: 0, y: 0, z: 3 }, { x: 0, y: 0, z: 3 }, "minecraft:spruce_planks"),
+    fill({ x: 6, y: 0, z: 3 }, { x: 6, y: 0, z: 3 }, "minecraft:spruce_planks"),
+    fill({ x: 3, y: 0, z: 0 }, { x: 3, y: 0, z: 0 }, "minecraft:spruce_planks"),
+    fill({ x: 3, y: 0, z: 6 }, { x: 3, y: 0, z: 6 }, "minecraft:spruce_planks"),
+    fill({ x: 1, y: 1, z: 1 }, { x: 1, y: 4, z: 1 }, "minecraft:stripped_oak_log"),
+    fill({ x: 1, y: 1, z: 5 }, { x: 1, y: 4, z: 5 }, "minecraft:stripped_oak_log"),
+    fill({ x: 5, y: 1, z: 1 }, { x: 5, y: 4, z: 1 }, "minecraft:stripped_oak_log"),
+    fill({ x: 5, y: 1, z: 5 }, { x: 5, y: 4, z: 5 }, "minecraft:stripped_oak_log"),
+    fill({ x: 1, y: 5, z: 1 }, { x: 5, y: 5, z: 5 }, "minecraft:dark_oak_planks"),
+    fill({ x: 0, y: 5, z: 0 }, { x: 6, y: 5, z: 6 }, "minecraft:dark_oak_slab"),
+    fill({ x: 2, y: 1, z: 1 }, { x: 4, y: 1, z: 1 }, "minecraft:spruce_fence"),
+    fill({ x: 2, y: 1, z: 5 }, { x: 4, y: 1, z: 5 }, "minecraft:spruce_fence"),
+    fill({ x: 1, y: 1, z: 2 }, { x: 1, y: 1, z: 4 }, "minecraft:spruce_fence"),
+    fill({ x: 5, y: 1, z: 2 }, { x: 5, y: 1, z: 4 }, "minecraft:spruce_fence"),
+    block({ x: 3, y: 0, z: 3 }, "minecraft:barrel"),
+    command("setblock {x} {y} {z} minecraft:lantern[hanging=true]", { x: 2, y: 4, z: 2 }),
+    command("setblock {x} {y} {z} minecraft:lantern[hanging=true]", { x: 4, y: 4, z: 2 }),
+    command("setblock {x} {y} {z} minecraft:lantern[hanging=true]", { x: 2, y: 4, z: 4 }),
+    command("setblock {x} {y} {z} minecraft:lantern[hanging=true]", { x: 4, y: 4, z: 4 }),
+    command("setblock {x} {y} {z} minecraft:soul_campfire", { x: 3, y: 1, z: 3 })
+  ]
+};
+
 export function assessBlueprintPlacement(
   space: LocalSpaceSnapshot,
   blueprint: StructureBlueprint,
