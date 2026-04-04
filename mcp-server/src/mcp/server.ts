@@ -97,6 +97,67 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
   );
 
   server.registerTool(
+    "plan_build",
+    {
+      title: "Plan Build",
+      description: "Plan a floating or grounded structure placement against the live scanned space without modifying the world.",
+      inputSchema: {
+        blueprintId: z.string().min(3).describe("Blueprint id such as cozy_cabin_v1 or ridge_lantern_lodge_v1."),
+        placementMode: z.enum(["floating", "grounded"]).optional().describe("Placement strategy. Defaults to grounded."),
+        radius: z.number().int().min(1).max(12).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(16).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(16).optional().describe("How many blocks above the player to include. Default: 12."),
+        clearanceAboveSurface: z.number().min(0).max(8).optional().describe("Floating builds only: extra clearance above the highest occupied support."),
+        minSupportRatio: z.number().min(0).max(1).optional().describe("Grounded builds only: minimum supported footprint ratio."),
+        maxSurfaceVariance: z.number().int().min(0).max(8).optional().describe("Grounded builds only: maximum tolerated Y variance under the footprint.")
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async ({ blueprintId, placementMode, radius, down, up, clearanceAboveSurface, minSupportRatio, maxSurfaceVariance }) =>
+      handlers.planBuild({ blueprintId, placementMode, radius, down, up, clearanceAboveSurface, minSupportRatio, maxSurfaceVariance })
+  );
+
+  server.registerTool(
+    "build_structure",
+    {
+      title: "Build Structure",
+      description: "Plan and execute a structure blueprint at a valid floating or grounded site.",
+      inputSchema: {
+        blueprintId: z.string().min(3).describe("Blueprint id such as cozy_cabin_v1 or ridge_lantern_lodge_v1."),
+        placementMode: z.enum(["floating", "grounded"]).optional().describe("Placement strategy. Defaults to grounded."),
+        radius: z.number().int().min(1).max(12).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(16).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(16).optional().describe("How many blocks above the player to include. Default: 12."),
+        clearanceAboveSurface: z.number().min(0).max(8).optional().describe("Floating builds only: extra clearance above the highest occupied support."),
+        minSupportRatio: z.number().min(0).max(1).optional().describe("Grounded builds only: minimum supported footprint ratio."),
+        maxSurfaceVariance: z.number().int().min(0).max(8).optional().describe("Grounded builds only: maximum tolerated Y variance under the footprint."),
+        allowOverlap: z.boolean().optional().describe("Force the build even if the selected plan reports overlap. Defaults to false.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ blueprintId, placementMode, radius, down, up, clearanceAboveSurface, minSupportRatio, maxSurfaceVariance, allowOverlap }) =>
+      handlers.buildStructure({
+        blueprintId,
+        placementMode,
+        radius,
+        down,
+        up,
+        clearanceAboveSurface,
+        minSupportRatio,
+        maxSurfaceVariance,
+        allowOverlap
+      })
+  );
+
+  server.registerTool(
     "place_block",
     {
       title: "Place Block",

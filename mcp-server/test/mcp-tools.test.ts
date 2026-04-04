@@ -178,6 +178,41 @@ test("createToolHandlers exposes analyze_local_space as semantic space-model con
   assert.match(readFirstText(result.content), /buildability/i);
 });
 
+test("createToolHandlers exposes plan_build as a grounded build plan with bounds and support metrics", async () => {
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    getInventory: async () => sampleInventory(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleGroundedBuildSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.planBuild({
+    blueprintId: "ridge_lantern_lodge_v1",
+    placementMode: "grounded",
+    radius: 12,
+    down: 6,
+    up: 12
+  });
+
+  assert.equal(result.isError, false);
+  const plan = (result.structuredContent as { plan?: { blueprintId?: string; placementMode?: string; supportRatio?: number } }).plan;
+  assert.equal(plan?.blueprintId, "ridge_lantern_lodge_v1");
+  assert.equal(plan?.placementMode, "grounded");
+  assert.ok((plan?.supportRatio ?? 0) >= 0.9);
+  assert.match(readFirstText(result.content), /ridge_lantern_lodge_v1/);
+});
+
 test("createToolHandlers exposes place_block with structured world-action content", async () => {
   const handlers = createToolHandlers({
     getPlayerState: async () => samplePlayer(),
@@ -415,6 +450,56 @@ test("createToolHandlers exposes set_time and set_weather as command-backed type
   assert.deepEqual(receivedCommands, ["time set day", "weather rain 30"]);
 });
 
+test("createToolHandlers exposes build_structure as an executable plan over fill, block, and command primitives", async () => {
+  const fillRequests: unknown[] = [];
+  const blockRequests: unknown[] = [];
+  const commandRequests: string[] = [];
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    getInventory: async () => sampleInventory(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleGroundedBuildSpace(),
+    placeBlock: async (request) => {
+      blockRequests.push(request);
+      return sampleActionResult("place_block", 1, request.blockId);
+    },
+    fillBox: async (request) => {
+      fillRequests.push(request);
+      return sampleActionResult("fill_box", 8, request.blockId);
+    },
+    runCommand: async ({ command }) => {
+      commandRequests.push(command);
+      return {
+        action: "run_command",
+        success: true,
+        dimension: "minecraft:overworld",
+        changedBlocks: 0,
+        command,
+        commandResult: 1,
+        message: `Executed command: ${command}`
+      };
+    }
+  });
+
+  const result = await handlers.buildStructure({
+    blueprintId: "ridge_lantern_lodge_v1",
+    placementMode: "grounded",
+    radius: 12,
+    down: 6,
+    up: 12
+  });
+
+  assert.equal(result.isError, false);
+  const build = (result.structuredContent as { build?: { blueprintId?: string; executedStepCount?: number; totalChangedBlocks?: number } }).build;
+  assert.equal(build?.blueprintId, "ridge_lantern_lodge_v1");
+  assert.ok((build?.executedStepCount ?? 0) >= 20);
+  assert.ok((build?.totalChangedBlocks ?? 0) >= fillRequests.length + blockRequests.length);
+  assert.ok(fillRequests.length >= 8);
+  assert.ok(blockRequests.length >= 3);
+  assert.ok(commandRequests.length >= 5);
+  assert.match(readFirstText(result.content), /Built ridge_lantern_lodge_v1/);
+});
+
 function readFirstText(content: unknown): string {
   assert.ok(Array.isArray(content));
   const first = content[0] as { text?: string } | undefined;
@@ -472,6 +557,66 @@ function sampleLocalSpace() {
     pointsOfInterest: [
       { category: "entity", kindId: "minecraft:villager", label: "Villager", position: { x: 24, y: 269, z: 11 } }
     ]
+  };
+}
+
+function sampleGroundedBuildSpace() {
+  const columns = [];
+  const walkableSurfaces = [];
+
+  for (let x = 198; x <= 220; x += 1) {
+    for (let z = 86; z <= 108; z += 1) {
+      const onShelf = x >= 202 && x <= 214 && z >= 92 && z <= 102;
+      const y = onShelf ? 70 : 68;
+      const blockId = onShelf ? "minecraft:stone" : "minecraft:grass_block";
+
+      columns.push({
+        x,
+        z,
+        highestOccupiedY: y,
+        topBlockId: blockId,
+        walkableY: y,
+        headroom: 10,
+        occupiedRuns: [{ startY: y, endY: y, blockId }]
+      });
+      walkableSurfaces.push({ x, y, z, blockId, headroom: 10 });
+    }
+  }
+
+  return {
+    schemaVersion: 1,
+    player: {
+      name: "GLAsserrrr",
+      dimension: "minecraft:overworld",
+      position: { x: 212, y: 76, z: 95 },
+      exactPosition: { x: 212.5, y: 76.0, z: 95.5 },
+      yaw: 32,
+      pitch: -8
+    },
+    bounds: {
+      min: { x: 198, y: 64, z: 86 },
+      max: { x: 220, y: 88, z: 108 }
+    },
+    parameters: {
+      radius: 12,
+      down: 6,
+      up: 12
+    },
+    summary: {
+      sampledColumns: columns.length,
+      sampledBlocks: columns.length * 25,
+      occupiedBlocks: columns.length,
+      airBlocks: columns.length * 24,
+      fluidBlocks: 0,
+      walkableSurfaceCount: walkableSurfaces.length,
+      topBlockCounts: [
+        { blockId: "minecraft:stone", count: 143 },
+        { blockId: "minecraft:grass_block", count: columns.length - 143 }
+      ]
+    },
+    columns,
+    walkableSurfaces,
+    pointsOfInterest: []
   };
 }
 

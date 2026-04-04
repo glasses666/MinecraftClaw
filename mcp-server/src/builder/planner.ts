@@ -1,5 +1,7 @@
 import type { BlockPosition, LocalSpaceSnapshot, SpacePointOfInterest } from "../bridge/client.js";
 
+export type BlueprintPlacementMode = "floating" | "grounded";
+
 export interface RelativeFillStep {
   kind: "fill";
   from: BlockPosition;
@@ -45,10 +47,29 @@ export interface FloatingPlacementOptions {
   clearanceAboveSurface?: number;
 }
 
+export interface GroundedPlacementOptions {
+  minSupportRatio?: number;
+  maxSurfaceVariance?: number;
+}
+
 export interface PlannedPlacement {
   origin: BlockPosition;
   assessment: PlacementAssessment;
   supportingColumnCount: number;
+  supportY?: number;
+  supportRatio?: number;
+}
+
+export interface BuildPlan {
+  blueprintId: string;
+  placementMode: BlueprintPlacementMode;
+  origin: BlockPosition;
+  bounds: PlacementAssessment["bounds"];
+  assessment: PlacementAssessment;
+  stepCount: number;
+  supportingColumnCount: number;
+  supportY?: number;
+  supportRatio?: number;
 }
 
 export type ExecutableBuildStep =
@@ -117,6 +138,55 @@ export const SKY_GAZEBO_V1: StructureBlueprint = {
     command("setblock {x} {y} {z} minecraft:soul_campfire", { x: 3, y: 1, z: 3 })
   ]
 };
+
+export const RIDGE_LANTERN_LODGE_V1: StructureBlueprint = {
+  id: "ridge_lantern_lodge_v1",
+  width: 9,
+  depth: 7,
+  height: 8,
+  steps: [
+    fill({ x: 0, y: 0, z: 0 }, { x: 8, y: 0, z: 6 }, "minecraft:stone_bricks"),
+    fill({ x: 1, y: 1, z: 1 }, { x: 7, y: 1, z: 5 }, "minecraft:spruce_planks"),
+    fill({ x: 1, y: 2, z: 1 }, { x: 7, y: 4, z: 5 }, "minecraft:oak_planks"),
+    fill({ x: 2, y: 2, z: 2 }, { x: 6, y: 4, z: 4 }, "minecraft:air"),
+    fill({ x: 0, y: 1, z: 0 }, { x: 0, y: 4, z: 0 }, "minecraft:cobblestone"),
+    fill({ x: 0, y: 1, z: 6 }, { x: 0, y: 4, z: 6 }, "minecraft:cobblestone"),
+    fill({ x: 8, y: 1, z: 0 }, { x: 8, y: 4, z: 0 }, "minecraft:cobblestone"),
+    fill({ x: 8, y: 1, z: 6 }, { x: 8, y: 4, z: 6 }, "minecraft:cobblestone"),
+    fill({ x: -1, y: 5, z: -1 }, { x: 9, y: 5, z: 7 }, "minecraft:dark_oak_planks"),
+    fill({ x: 0, y: 6, z: 0 }, { x: 8, y: 6, z: 6 }, "minecraft:dark_oak_slab"),
+    fill({ x: 2, y: 2, z: 1 }, { x: 3, y: 2, z: 1 }, "minecraft:glass_pane"),
+    fill({ x: 5, y: 2, z: 1 }, { x: 6, y: 2, z: 1 }, "minecraft:glass_pane"),
+    fill({ x: 1, y: 2, z: 3 }, { x: 1, y: 2, z: 4 }, "minecraft:glass_pane"),
+    fill({ x: 7, y: 2, z: 2 }, { x: 7, y: 2, z: 4 }, "minecraft:glass_pane"),
+    fill({ x: 2, y: 2, z: 5 }, { x: 6, y: 2, z: 5 }, "minecraft:glass_pane"),
+    fill({ x: 2, y: 1, z: -1 }, { x: 6, y: 1, z: 0 }, "minecraft:spruce_planks"),
+    fill({ x: 2, y: 2, z: -1 }, { x: 6, y: 2, z: -1 }, "minecraft:spruce_fence"),
+    block({ x: 2, y: 2, z: 3 }, "minecraft:bookshelf"),
+    block({ x: 6, y: 2, z: 4 }, "minecraft:bookshelf"),
+    block({ x: 6, y: 2, z: 2 }, "minecraft:chest"),
+    block({ x: 5, y: 2, z: 2 }, "minecraft:crafting_table"),
+    command("setblock {x} {y} {z} minecraft:spruce_door[facing=south,half=lower,hinge=left,open=false]", { x: 4, y: 2, z: 1 }),
+    command("setblock {x} {y} {z} minecraft:spruce_door[facing=south,half=upper,hinge=left,open=false]", { x: 4, y: 3, z: 1 }),
+    command("setblock {x} {y} {z} minecraft:red_bed[facing=east,part=foot,occupied=false]", { x: 2, y: 2, z: 4 }),
+    command("setblock {x} {y} {z} minecraft:red_bed[facing=east,part=head,occupied=false]", { x: 3, y: 2, z: 4 }),
+    command("setblock {x} {y} {z} minecraft:lantern[hanging=true]", { x: 3, y: 4, z: 2 }),
+    command("setblock {x} {y} {z} minecraft:lantern[hanging=true]", { x: 5, y: 4, z: 2 }),
+    command("setblock {x} {y} {z} minecraft:campfire[lit=true,signal_fire=false,waterlogged=false]", { x: 7, y: 1, z: 5 }),
+    command("setblock {x} {y} {z} minecraft:cobblestone_wall", { x: 7, y: 2, z: 5 }),
+    command("setblock {x} {y} {z} minecraft:cobblestone_wall", { x: 7, y: 3, z: 5 })
+  ]
+};
+
+export const BLUEPRINT_LIBRARY: Record<string, StructureBlueprint> = {
+  [COZY_CABIN_V1.id]: COZY_CABIN_V1,
+  [SKY_GAZEBO_V1.id]: SKY_GAZEBO_V1,
+  [RIDGE_LANTERN_LODGE_V1.id]: RIDGE_LANTERN_LODGE_V1
+};
+
+export function getBlueprint(blueprintId: string): StructureBlueprint | null {
+  return BLUEPRINT_LIBRARY[blueprintId] ?? null;
+}
 
 export function assessBlueprintPlacement(
   space: LocalSpaceSnapshot,
@@ -233,6 +303,107 @@ export function findFloatingPlacement(
     left.origin.x - right.origin.x ||
     left.origin.z - right.origin.z
   )[0] ?? null;
+}
+
+export function findGroundedPlacement(
+  space: LocalSpaceSnapshot,
+  blueprint: StructureBlueprint,
+  options: GroundedPlacementOptions = {}
+): PlannedPlacement | null {
+  const minSupportRatio = options.minSupportRatio ?? 0.9;
+  const maxSurfaceVariance = options.maxSurfaceVariance ?? 0;
+  const columnsByKey = new Map(space.columns.map((column) => [`${column.x},${column.z}`, column] as const));
+  const candidates: PlannedPlacement[] = [];
+  const footprintArea = blueprint.width * blueprint.depth;
+
+  for (let x = space.bounds.min.x; x <= space.bounds.max.x - blueprint.width + 1; x += 1) {
+    for (let z = space.bounds.min.z; z <= space.bounds.max.z - blueprint.depth + 1; z += 1) {
+      const supportHeights: number[] = [];
+
+      for (let dx = 0; dx < blueprint.width; dx += 1) {
+        for (let dz = 0; dz < blueprint.depth; dz += 1) {
+          const column = columnsByKey.get(`${x + dx},${z + dz}`);
+          if (column?.walkableY !== null && column?.walkableY !== undefined) {
+            supportHeights.push(column.walkableY);
+          }
+        }
+      }
+
+      if (supportHeights.length === 0) {
+        continue;
+      }
+
+      const supportRatio = supportHeights.length / footprintArea;
+      if (supportRatio < minSupportRatio) {
+        continue;
+      }
+
+      const minY = Math.min(...supportHeights);
+      const maxY = Math.max(...supportHeights);
+      if (maxY - minY > maxSurfaceVariance) {
+        continue;
+      }
+
+      const supportY = maxY;
+      const origin = { x, y: supportY + 1, z };
+      const assessment = assessBlueprintPlacement(space, blueprint, origin);
+      if (!assessment.isClear) {
+        continue;
+      }
+
+      candidates.push({
+        origin,
+        assessment,
+        supportingColumnCount: supportHeights.length,
+        supportY,
+        supportRatio: Number(supportRatio.toFixed(3))
+      });
+    }
+  }
+
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  return candidates.sort((left, right) =>
+    (right.supportRatio ?? 0) - (left.supportRatio ?? 0) ||
+    Math.abs((right.supportY ?? 0) - space.player.position.y) - Math.abs((left.supportY ?? 0) - space.player.position.y) ||
+    scorePlacement(left.origin, space.player.position) - scorePlacement(right.origin, space.player.position) ||
+    left.origin.x - right.origin.x ||
+    left.origin.z - right.origin.z
+  )[0] ?? null;
+}
+
+export function planStructureBuild(
+  space: LocalSpaceSnapshot,
+  blueprintId: string,
+  placementMode: BlueprintPlacementMode,
+  options: FloatingPlacementOptions & GroundedPlacementOptions = {}
+): BuildPlan | Error {
+  const blueprint = getBlueprint(blueprintId);
+  if (blueprint === null) {
+    return new Error(`Unknown blueprint: ${blueprintId}`);
+  }
+
+  const placement = placementMode === "grounded"
+    ? findGroundedPlacement(space, blueprint, options)
+    : findFloatingPlacement(space, blueprint, options);
+
+  if (placement === null) {
+    return new Error(`No valid ${placementMode} placement found for blueprint ${blueprintId}.`);
+  }
+
+  return {
+    blueprintId,
+    placementMode,
+    origin: placement.origin,
+    bounds: placement.assessment.bounds,
+    assessment: placement.assessment,
+    stepCount: buildExecutionPlan(blueprint, placement.origin).length,
+    supportingColumnCount: placement.supportingColumnCount,
+    supportY: placement.supportY,
+    supportRatio: placement.supportRatio
+  };
 }
 
 export function buildExecutionPlan(

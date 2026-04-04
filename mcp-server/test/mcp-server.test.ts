@@ -53,12 +53,14 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
   assert.deepEqual(toolNames, [
     "analyze_local_space",
     "break_block",
+    "build_structure",
     "clear_box",
     "fill_box",
     "get_inventory",
     "get_player_state",
     "give_item",
     "place_block",
+    "plan_build",
     "run_command",
     "scan_local_space",
     "set_time",
@@ -99,6 +101,20 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
   assert.equal(placement.isError, false);
   assert.match(readFirstText(placement.content), /gold_block/);
 
+  const plan = await client.callTool({
+    name: "plan_build",
+    arguments: {
+      blueprintId: "cozy_cabin_v1",
+      placementMode: "floating",
+      radius: 4,
+      down: 4,
+      up: 6
+    }
+  });
+
+  assert.equal(plan.isError, false);
+  assert.match(readFirstText(plan.content), /cozy_cabin_v1/);
+
   const inventory = await client.callTool({
     name: "get_inventory",
     arguments: {}
@@ -129,7 +145,7 @@ function sampleLocalSpace() {
     },
     bounds: {
       min: { x: 22, y: 265, z: 9 },
-      max: { x: 30, y: 275, z: 17 }
+      max: { x: 30, y: 281, z: 17 }
     },
     parameters: {
       radius: 4,

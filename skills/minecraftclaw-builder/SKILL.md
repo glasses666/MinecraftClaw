@@ -8,39 +8,38 @@ description: Use when working in the MinecraftClaw repo to scan live Minecraft s
 ## Overview
 
 Use this skill when the task is "build something in the live Minecraft world" rather than just "edit mod code."
-
-The current builder stack already supports:
-- live space scans through the MinecraftClaw MCP server
-- whole-volume overlap checks against occupied runs and POIs
-- reusable blueprints in `mcp-server/src/builder/planner.ts`
-- execution through `fill_box`, `place_block`, and `run_command`
+Read `references/mcp-workflow.md` for the exact tool sequence and payload shapes.
+Read `references/blueprints.md` when choosing an existing structure.
+Read `references/blueprint-templates.md` when authoring a new grounded or floating blueprint.
 
 ## Workflow
 
-1. Inspect the current build primitives in `mcp-server/src/builder/planner.ts`.
-   Existing blueprints are listed in `references/blueprints.md`.
+1. Confirm the live target.
+   Start with `get_player_state`.
+   If MCP is down, stop and confirm the bridge on `127.0.0.1:47127` is alive before touching code.
 
-2. Read the live scene first.
-   Use `scan_local_space` or `analyze_local_space` before proposing a build site.
+2. Read the scene before choosing a build.
+   Use `analyze_local_space` for semantic context.
+   Use `scan_local_space` when you need exact columns, walkable surfaces, or POIs.
 
-3. Never build directly from anchor points alone.
-   Always evaluate the full structure footprint and volume.
-   If you are adding a new structure, use the same pattern as `assessBlueprintPlacement(...)`.
+3. Pick the planner mode before the blueprint.
+   Use `grounded` for terrain, cliffs, plateaus, roads, and settlements.
+   Use `floating` only for intentional sky structures.
 
-4. If the planned volume overlaps occupied runs or POIs, stop and ask the user whether overlap is acceptable.
-   Default behavior should be non-destructive.
+4. Plan before building.
+   Use `plan_build` with `blueprintId` and `placementMode`.
+   Do not jump straight to `build_structure` unless the plan is already known to be safe.
 
-5. Prefer placements with:
-   - zero occupied-volume overlap
-   - zero POI overlap
-   - the fewest supporting columns under the footprint
-   - reasonable distance from the player
+5. Treat overlap as a user-facing decision.
+   If `plan_build` reports overlap with occupied volume or POIs, stop and ask.
+   Default behavior is non-destructive.
 
-6. Execute from a generated absolute plan, not ad hoc coordinates.
-   Use `buildExecutionPlan(...)` so the final build is reproducible.
+6. Execute reproducibly.
+   Use `build_structure` for full blueprint execution.
+   Use `place_block`, `fill_box`, or `run_command` only for targeted touch-ups after the main build.
 
-7. Verify after construction.
-   Re-scan the same area and confirm the new structure's POIs and bounds match the plan.
+7. Verify in-world.
+   Re-run `scan_local_space` or `analyze_local_space` over the same area and confirm the new structure matches the intended footprint and style.
 
 ## New Blueprints
 
@@ -51,15 +50,17 @@ When adding a new build:
 - keep dimensions explicit in the blueprint so placement checks stay deterministic
 
 Read `references/blueprint-patterns.md` before adding a new structure type.
+Grounded structures should expose an honest footprint and work with `findGroundedPlacement(...)`.
+Floating structures should keep their occupied volume clear and work with `findFloatingPlacement(...)`.
 
 ## Live Execution Notes
 
-- For one-off live building, importing from `dist/src/builder/planner.js` is safer than importing raw TypeScript in a Node eval snippet.
-- If MCP calls return `fetch failed`, confirm the game bridge is listening on `127.0.0.1:47127` before debugging the tool layer.
+- The preferred tool path is `analyze_local_space -> plan_build -> build_structure -> verify`.
+- Use grounded builds to fit the biome and materials already present in the scene.
+- Keep new houses aligned with the environment instead of dropping generic starter cubes onto the terrain.
 - If the selected Prism instance is already running older code, stage the new jar and wait for the next launch rather than touching the user's process.
 
 ## Current Limits
 
-- The planner currently prefers detached floating placements; grounded site planning is still primitive.
-- Overlap handling is advisory logic in the MCP layer, not yet a dedicated MCP `plan_build` / `confirm_build` tool pair.
+- `plan_build` and `build_structure` cover the current reusable workflow, but overlap approval is still a caller policy rather than a separate `confirm_build` tool.
 - Blueprint quality is only as good as the authored step list; this is not a schematic importer yet.

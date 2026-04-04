@@ -3,9 +3,11 @@ import assert from "node:assert/strict";
 
 import {
   COZY_CABIN_V1,
+  RIDGE_LANTERN_LODGE_V1,
   SKY_GAZEBO_V1,
   assessBlueprintPlacement,
   buildExecutionPlan,
+  findGroundedPlacement,
   findFloatingPlacement
 } from "../src/builder/planner.js";
 
@@ -61,6 +63,15 @@ test("buildExecutionPlan emits a lantern-heavy gazebo plan with open sides", () 
   assert.equal(plan.some((step) => step.kind === "fill"), true);
 });
 
+test("findGroundedPlacement picks a supported flat shelf for the ridge lodge", () => {
+  const placement = findGroundedPlacement(sampleRidgeShelfSpace(), RIDGE_LANTERN_LODGE_V1);
+
+  assert.notEqual(placement, null);
+  assert.equal(placement?.origin.y, 73);
+  assert.ok((placement?.supportingColumnCount ?? 0) >= 54);
+  assert.equal(placement?.assessment.isClear, true);
+});
+
 function sampleSkyPlatformSpace() {
   const columns = [];
   const walkableSurfaces = [];
@@ -104,6 +115,58 @@ function sampleSkyPlatformSpace() {
       fluidBlocks: 0,
       walkableSurfaceCount: walkableSurfaces.length,
       topBlockCounts: [{ blockId: "minecraft:spruce_planks", count: 25 }]
+    },
+    columns,
+    walkableSurfaces,
+    pointsOfInterest: []
+  };
+}
+
+function sampleRidgeShelfSpace() {
+  const columns = [];
+  const walkableSurfaces = [];
+
+  for (let x = -6; x <= 10; x += 1) {
+    for (let z = -6; z <= 12; z += 1) {
+      const onShelf = x >= -1 && x <= 8 && z >= 0 && z <= 8;
+      const y = onShelf ? 72 : 70;
+      const blockId = onShelf ? "minecraft:stone" : "minecraft:grass_block";
+
+      columns.push(column(x, z, y, blockId));
+      walkableSurfaces.push(surface(x, y, z, blockId, 10));
+    }
+  }
+
+  return {
+    schemaVersion: 1,
+    player: {
+      name: "glasserrrr",
+      dimension: "minecraft:overworld",
+      position: { x: 2, y: 72, z: 4 },
+      exactPosition: { x: 2.5, y: 72, z: 4.5 },
+      yaw: 0,
+      pitch: 0
+    },
+    bounds: {
+      min: { x: -6, y: 68, z: -6 },
+      max: { x: 10, y: 86, z: 12 }
+    },
+    parameters: {
+      radius: 8,
+      down: 4,
+      up: 14
+    },
+    summary: {
+      sampledColumns: columns.length,
+      sampledBlocks: columns.length * 19,
+      occupiedBlocks: columns.length,
+      airBlocks: columns.length * 18,
+      fluidBlocks: 0,
+      walkableSurfaceCount: walkableSurfaces.length,
+      topBlockCounts: [
+        { blockId: "minecraft:stone", count: 81 },
+        { blockId: "minecraft:grass_block", count: columns.length - 81 }
+      ]
     },
     columns,
     walkableSurfaces,
