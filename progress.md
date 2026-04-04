@@ -135,6 +135,27 @@
 - Files created/modified:
   - progress.md (updated)
 
+### Phase 9: Semantic Space Model
+- **Status:** complete
+- **Started:** 2026-04-04 23:07 Asia/Shanghai
+- Actions taken:
+  - Chose a semantic next slice that leaves the mod bridge unchanged and layers interpretation in the MCP server
+  - Wrote failing tests first for `buildSpaceModel`, `analyze_local_space`, and MCP tool registration
+  - Implemented `space_model_v1` with region clustering, structure detection, and buildability anchor selection
+  - Tightened region heuristics so cultivated patches are not over-labeled as settlement cores just because of nearby POIs
+  - Re-ran the full `mcp-server` test suite, TypeScript build, and a live MCP semantic-analysis call against the running game
+- Files created/modified:
+  - task_plan.md (updated)
+  - findings.md (updated)
+  - progress.md (updated)
+  - README.md (updated)
+  - mcp-server/src/mcp/space-model.ts (created)
+  - mcp-server/src/mcp/server.ts (updated)
+  - mcp-server/src/mcp/tools.ts (updated)
+  - mcp-server/test/mcp-server.test.ts (updated)
+  - mcp-server/test/mcp-tools.test.ts (updated)
+  - mcp-server/test/space-model.test.ts (created)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -156,6 +177,10 @@
 | Live bridge read | `curl http://127.0.0.1:47127/player` | Returns current player state | Returned `GLAsserrrr` at `26,269,13` then later `40,261,-8` after movement | ✓ |
 | Live bridge teleport | `curl POST /player/teleport` and MCP `teleport_player` | Player moves and state updates | Teleport succeeded and state readback matched destination | ✓ |
 | Local space live scan | `curl POST /space/local` and MCP `scan_local_space` | Returns structured local 3D model | Returned 81 columns, 193 occupied blocks, 38 walkable surfaces, and 2 POIs | ✓ |
+| Semantic model tests (red) | `npm test` before `src/mcp/space-model.ts` existed | Tests fail for missing semantic model/tooling | Failed with `ERR_MODULE_NOT_FOUND` and missing `analyze_local_space` | ✓ |
+| Semantic model tests (green) | `npm test` | Semantic analysis tests pass | 14/14 passing | ✓ |
+| Semantic model build | `npm run build` | TypeScript compile succeeds | Succeeds after explicit test-side type narrowing | ✓ |
+| Live semantic MCP analysis | `analyze_local_space radius=6 down=4 up=6` | Returns semantic scene model | Returned `scene=mixed`, `buildability=constrained`, one natural-ground region, one cultivated-land structure, and flat build anchors | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -173,15 +198,16 @@
 | 2026-04-04 20:49 | `:mod:test` compile failed while a parallel Gradle build was mutating source state | 1 | Trusted the successful full `:mod:build` run and avoided duplicate concurrent Gradle invocations |
 | 2026-04-04 22:28 | Live `/space/local` returned `404` after implementation | 1 | Confirmed the running Prism instance still had the older jar, copied the rebuilt jar, and relaunched |
 | 2026-04-04 22:38 | Prism reopened without auto-entering `新的世界` | 1 | Continued after the user manually entered the world instead of forcing a config rewrite |
+| 2026-04-04 23:18 | `npm run build` failed even though tests passed | 1 | Explicitly narrowed `structuredContent.model` in the test so `tsc` could type-check the suite |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 9 |
-| Where am I going? | Deliver the verified local-space milestone and then iterate on larger-area or higher-resolution reconstruction |
-| What's the goal? | Give the agent a real-time structured model of the player's nearby 3D environment |
-| What have I learned? | The current nearby scene can already be reconstructed as a compact structural model rather than a raw block dump |
-| What have I done? | Implemented and verified `scan_local_space` end-to-end through the live Fabric bridge and MCP server |
+| Where am I? | Phase 10 |
+| Where am I going? | Commit the semantic-analysis milestone and then iterate on larger-area region stitching or higher-resolution scanning |
+| What's the goal? | Give the agent a real-time semantic model of the player's nearby 3D environment |
+| What have I learned? | The current nearby scene can already be lifted into semantic regions, structures, and buildability hints without changing the mod bridge |
+| What have I done? | Implemented and verified `analyze_local_space` end-to-end on top of the live Fabric bridge and MCP server |
 
 ---
 *Update after completing each phase or encountering errors*

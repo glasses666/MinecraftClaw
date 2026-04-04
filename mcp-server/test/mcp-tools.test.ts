@@ -100,6 +100,36 @@ test("createToolHandlers exposes scan_local_space as structured local space cont
   assert.match(readFirstText(result.content), /19 walkable surfaces/);
 });
 
+test("createToolHandlers exposes analyze_local_space as semantic space-model content", async () => {
+  const handlers = createToolHandlers({
+    getPlayerState: async () => ({
+      name: "GLAsserrrr",
+      dimension: "minecraft:overworld",
+      position: { x: 26, y: 269, z: 13 },
+      exactPosition: { x: 26.7674, y: 269.5, z: 13.2385 },
+      yaw: -94.5,
+      pitch: -4.5
+    }),
+    teleportPlayer: async () => ({
+      name: "GLAsserrrr",
+      dimension: "minecraft:overworld",
+      position: { x: 40, y: 270, z: -8 },
+      exactPosition: { x: 40, y: 270, z: -8 },
+      yaw: 0,
+      pitch: 0
+    }),
+    scanLocalSpace: async () => sampleLocalSpace()
+  });
+
+  const result = await handlers.analyzeLocalSpace({ radius: 4, down: 4, up: 6 });
+  const model = (result.structuredContent as { model?: { summary?: { dominantSceneKind?: string } } } | undefined)?.model;
+
+  assert.equal(result.isError, false);
+  assert.equal(model?.summary?.dominantSceneKind, "natural");
+  assert.match(readFirstText(result.content), /scene/i);
+  assert.match(readFirstText(result.content), /buildability/i);
+});
+
 function readFirstText(content: unknown): string {
   assert.ok(Array.isArray(content));
   const first = content[0] as { text?: string } | undefined;

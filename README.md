@@ -17,6 +17,7 @@ The repository now contains:
 - the first bridge configuration test
 - raw world snapshot export on player join and via command
 - a first-pass MCP-side raw export cleaner
+- live local-space scanning and semantic local-space analysis
 
 ### Fabric smoke-test commands
 
@@ -62,18 +63,18 @@ Reference artifacts:
 
 ## Current Milestone
 
-`M1 - MCP Round Trip`
+`M2 - Local Semantic Space Model`
 
-The first milestone proves end-to-end connectivity:
+The current milestone proves end-to-end local scene understanding:
 
-1. the Fabric mod starts successfully
-2. the mod exposes a minimal control surface
-3. the MCP server can call into that surface
-4. a caller can read player state and perform one small test action
+1. the Fabric mod exposes a stable localhost bridge
+2. the MCP server can read player state, move the player, and scan nearby 3D space
+3. the MCP server can lift that scan into regions, structures, and buildability hints
+4. a caller can verify the semantic model against the live game scene
 
-## Planned Initial Tools
+## Current MCP Tools
 
-- `ping`
 - `get_player_state`
-- `scan_area`
-- `place_test_block`
+- `teleport_player`
+- `scan_local_space`
+- `analyze_local_space`

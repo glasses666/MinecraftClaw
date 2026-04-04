@@ -6,6 +6,7 @@ import type {
   SpaceScanRequest,
   TeleportRequest
 } from "../bridge/client.js";
+import { buildSpaceModel } from "./space-model.js";
 
 export interface ToolDependencies {
   getPlayerState(): Promise<BridgePlayerState>;
@@ -17,6 +18,7 @@ export interface ToolHandlers {
   getPlayerState(): Promise<CallToolResult>;
   teleportPlayer(request: TeleportRequest): Promise<CallToolResult>;
   scanLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
+  analyzeLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
 }
 
 export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers {
@@ -70,6 +72,33 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
       } catch (error) {
         return errorResult(`Failed to scan local space: ${describeError(error)}`);
       }
+    },
+
+    async analyzeLocalSpace(request) {
+      const normalizedRequest = normalizeScanRequest(request);
+
+      if (normalizedRequest instanceof Error) {
+        return errorResult(normalizedRequest.message);
+      }
+
+      try {
+        const space = await dependencies.scanLocalSpace(normalizedRequest);
+        const model = buildSpaceModel(space);
+        return {
+          content: [
+            {
+              type: "text",
+              text: describeSpaceModel(model)
+            }
+          ],
+          structuredContent: {
+            model
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to analyze local space: ${describeError(error)}`);
+      }
     }
   };
 }
@@ -116,6 +145,17 @@ function describeLocalSpace(space: LocalSpaceSnapshot): string {
   return `Scanned local space around ${space.player.name}: ${space.summary.sampledColumns} columns, ` +
     `${space.summary.sampledBlocks} sampled blocks, ${space.summary.walkableSurfaceCount} walkable surfaces, ` +
     `${space.pointsOfInterest.length} POIs. Top surface blocks: ${topBlocks || "none"}.`;
+}
+
+function describeSpaceModel(model: ReturnType<typeof buildSpaceModel>): string {
+  const regionSummary = model.regions
+    .slice(0, 2)
+    .map((region) => `${region.kind}(${region.walkableSurfaceCount})`)
+    .join(", ");
+
+  return `Analyzed scene around ${model.player.name}: scene=${model.summary.dominantSceneKind}, ` +
+    `buildability=${model.buildability.status}, ${model.regions.length} regions, ` +
+    `${model.structures.length} structures. Regions: ${regionSummary || "none"}.`;
 }
 
 function describeError(error: unknown): string {

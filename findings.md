@@ -46,6 +46,10 @@
 - The live sample at `radius=4, down=4, up=6` returned 81 columns, 891 sampled blocks, 193 occupied blocks, 38 walkable surfaces, and 2 POIs
 - The current nearby scene is clearly a built platform or rooftop area rather than natural terrain: acacia stairs, pink terracotta, spruce fences, cyan wool, trapdoors, stripped acacia logs, and lectern/chest POIs dominate the sample
 - The player was at `26,268,13` with `yaw=6.2999635` and `pitch=27.000015` during the live scan
+- The next semantic layer can be built entirely in `mcp-server` on top of `scan_local_space`; the mod bridge does not need to change for `space_model_v1`
+- `analyze_local_space` now derives semantic `regions`, `structures`, and `buildability` from the compressed local scan
+- Live semantic analysis on the running game returned `scene=mixed`, `buildability=constrained`, one dominant `natural_ground` region, a detected `cultivated_land` structure, and several flat build anchors on spruce-plank/grass surfaces
+- Region classification works better when settlement-core detection is stricter than global buildability detection; otherwise nearby beds/chests over-classify cultivated patches as pure settlement
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -63,6 +67,8 @@
 | Build `space_model_v1` around occupied vertical runs, walkable surfaces, and POIs | This is a more agent-usable abstraction of nearby 3D space than a full raw block grid |
 | Use bounded scan parameters with defaults `radius=8, down=8, up=12` | This raises local resolution while keeping payload size deterministic and safe for MCP clients |
 | Represent each `(x,z)` column as occupied vertical runs instead of raw block rows | Run-length compression preserves 3D structure and cuts token cost sharply |
+| Keep semantic space interpretation in TypeScript for now | The MCP layer can evolve heuristics quickly without changing the Fabric bridge contract |
+| Separate region classification from buildability classification | Regions should describe the local geometry itself, while buildability can be stricter because of nearby POIs and social/functional constraints |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -75,6 +81,7 @@
 | Prism client pack crashed on first retest with MinecraftClaw installed | Root cause was `dynamiccrosshaircompat` mixin failure, so the mod was temporarily moved to `mods.disabled` |
 | Prism `JoinWorldOnLaunch` setting did not take effect automatically | `OverrideMiscellaneous` is false in `instance.cfg`, so the config line alone is not authoritative |
 | Live `/space/local` initially returned `404` | The running Prism instance was still on the older installed jar; copying the rebuilt jar and relaunching fixed it |
+| `tsc` failed even though `tsx --test` passed | The test needed an explicit type narrowing for `structuredContent.model` before the production build would compile |
 
 ## Resources
 - Workspace: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot
@@ -110,6 +117,7 @@
 - PrismLauncher instance log: /Users/dracoglasser/Library/Application Support/PrismLauncher/instances/乌托邦探险之旅3.5fix/minecraft/logs/latest.log
 - Live bridge endpoint: http://127.0.0.1:47127
 - New live tool: `scan_local_space`
+- New semantic tool: `analyze_local_space`
 
 ## Visual/Browser Findings
 - User screenshot shows a Fabric 1.20.1 setup baseline with LWJGL 3 3.3.1, Minecraft 1.20.1, Intermediary Mappings 1.20.1, and Fabric Loader 0.17.2

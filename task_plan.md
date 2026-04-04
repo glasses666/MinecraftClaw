@@ -1,10 +1,10 @@
 # Task Plan: Fabric MCP Builder Bot Space Reconstruction
 
 ## Goal
-Extend the verified Fabric 1.20.1 + MCP bridge so the agent can reconstruct the player's nearby 3D space, not just read player position and teleport.
+Extend the verified Fabric 1.20.1 + MCP bridge so the agent can reconstruct and semantically interpret the player's nearby 3D space, not just read player position and teleport.
 
 ## Current Phase
-Phase 9
+Phase 10
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -56,8 +56,15 @@ Phase 9
 - **Status:** complete
 
 ### Phase 9: Delivery
-- [ ] Summarize the live local space model behavior
-- [ ] Explain what the agent currently sees around the player
+- [x] Summarize the live local space model behavior
+- [x] Explain what the agent currently sees around the player
+- [x] Commit and push the milestone
+- **Status:** complete
+
+### Phase 10: Semantic Space Model
+- [x] Define a minimal semantic layer above local-space scans
+- [x] Add a new MCP tool that returns regions, structures, and buildability
+- [x] Verify the semantic analysis against the live game session
 - [ ] Commit and push the milestone
 - **Status:** in_progress
 
@@ -65,6 +72,7 @@ Phase 9
 1. What compressed local-space representation gives the agent the most 3D understanding per token?
 2. Which parts of the nearby scene should be surfaced as walkable surfaces, occupancy runs, and POIs?
 3. How should the scan be parameterized so resolution can increase without exploding payload size?
+4. Which semantic signals are stable enough to expose before doing larger-area world stitching?
 
 ## Decisions Made
 | Decision | Rationale |
@@ -79,6 +87,7 @@ Phase 9
 | Treat unrelated client-mod crashes separately from MinecraftClaw | The first launch failure came from `dynamiccrosshaircompat`, not from MinecraftClaw |
 | Add a real-time `scan_local_space` MCP tool instead of extending raw export first | The user wants live 3D understanding, and the bridge is already verified end-to-end |
 | Prefer compressed 3D columns plus walkable surfaces over raw block dumps | This preserves spatial structure while keeping the payload small enough for agent use |
+| Add semantic interpretation in the MCP server before changing the mod scan format | This preserves the stable bridge contract and lets heuristics evolve faster than JVM-side world access code |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -88,6 +97,7 @@ Phase 9
 | Fabric Gradle build fails under Java 26 with `Unsupported class file major version 70` | 1 | Need to run the build under Java 21 or 17 instead of the system default Java 26 |
 | Prism test launch crashed before mod initialization | 1 | Identified `dynamiccrosshaircompat` as the first hard error and disabled it for retest |
 | `JoinWorldOnLaunch` was set but not honored | 1 | The instance had `OverrideMiscellaneous=false`; live bridge tests proceeded after the world was entered manually/through the running session |
+| `tsx --test` passed but `tsc` failed on `structuredContent` typing | 1 | Narrowed the test-side type explicitly before rebuilding the MCP server |
 
 ## Notes
 - Update phase status as research converges

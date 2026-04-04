@@ -6,7 +6,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { createMinecraftClawMcpServer } from "../src/mcp/server.js";
 
-test("createMinecraftClawMcpServer registers player-state and teleport tools", async () => {
+test("createMinecraftClawMcpServer registers player-state, scan, semantic analysis, and teleport tools", async () => {
   const server = createMinecraftClawMcpServer({
     getPlayerState: async () => ({
       name: "GLAsserrrr",
@@ -38,7 +38,7 @@ test("createMinecraftClawMcpServer registers player-state and teleport tools", a
   const tools = await client.listTools();
   const toolNames = tools.tools.map((tool) => tool.name).sort();
 
-  assert.deepEqual(toolNames, ["get_player_state", "scan_local_space", "teleport_player"]);
+  assert.deepEqual(toolNames, ["analyze_local_space", "get_player_state", "scan_local_space", "teleport_player"]);
 
   const result = await client.callTool({
     name: "get_player_state",
@@ -55,6 +55,14 @@ test("createMinecraftClawMcpServer registers player-state and teleport tools", a
 
   assert.equal(scan.isError, false);
   assert.match(readFirstText(scan.content), /81 columns/);
+
+  const analysis = await client.callTool({
+    name: "analyze_local_space",
+    arguments: { radius: 4, down: 4, up: 6 }
+  });
+
+  assert.equal(analysis.isError, false);
+  assert.match(readFirstText(analysis.content), /scene/i);
 
   await Promise.all([client.close(), server.close()]);
 });
