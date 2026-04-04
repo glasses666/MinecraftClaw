@@ -1,0 +1,198 @@
+{
+  "id": "riverside_stilt_hut_v1",
+  "width": 9,
+  "depth": 8,
+  "height": 8,
+  "steps": [
+    {
+      "kind": "fill",
+      "from": { "x": 0, "y": 0, "z": 2 },
+      "to": { "x": 8, "y": 0, "z": 7 },
+      "blockId": "minecraft:stone_bricks"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 1, "y": 1, "z": 2 },
+      "to": { "x": 7, "y": 1, "z": 7 },
+      "blockId": "minecraft:spruce_planks"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 1, "y": 2, "z": 2 },
+      "to": { "x": 7, "y": 4, "z": 7 },
+      "blockId": "minecraft:oak_planks"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 2, "y": 2, "z": 3 },
+      "to": { "x": 6, "y": 4, "z": 6 },
+      "blockId": "minecraft:air"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 0, "y": 1, "z": 2 },
+      "to": { "x": 0, "y": 4, "z": 2 },
+      "blockId": "minecraft:cobblestone"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 8, "y": 1, "z": 2 },
+      "to": { "x": 8, "y": 4, "z": 2 },
+      "blockId": "minecraft:cobblestone"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 0, "y": 1, "z": 7 },
+      "to": { "x": 0, "y": 4, "z": 7 },
+      "blockId": "minecraft:cobblestone"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 8, "y": 1, "z": 7 },
+      "to": { "x": 8, "y": 4, "z": 7 },
+      "blockId": "minecraft:cobblestone"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 0, "y": 5, "z": 2 },
+      "to": { "x": 8, "y": 5, "z": 7 },
+      "blockId": "minecraft:dark_oak_planks"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 1, "y": 6, "z": 3 },
+      "to": { "x": 7, "y": 6, "z": 6 },
+      "blockId": "minecraft:dark_oak_planks"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 3, "y": 7, "z": 4 },
+      "to": { "x": 5, "y": 7, "z": 5 },
+      "blockId": "minecraft:dark_oak_slab"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 1, "y": 1, "z": 0 },
+      "to": { "x": 7, "y": 1, "z": 1 },
+      "blockId": "minecraft:spruce_planks"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 2, "y": 2, "z": 0 },
+      "to": { "x": 6, "y": 2, "z": 0 },
+      "blockId": "minecraft:spruce_fence"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 1, "y": 1, "z": 1 },
+      "to": { "x": 1, "y": 4, "z": 1 },
+      "blockId": "minecraft:stripped_spruce_log"
+    },
+    {
+      "kind": "fill",
+      "from": { "x": 7, "y": 1, "z": 1 },
+      "to": { "x": 7, "y": 4, "z": 1 },
+      "blockId": "minecraft:stripped_spruce_log"
+    },
+    {
+      "kind": "block",
+      "at": { "x": 4, "y": 1, "z": 7 },
+      "blockId": "minecraft:barrel"
+    },
+    {
+      "kind": "block",
+      "at": { "x": 5, "y": 1, "z": 7 },
+      "blockId": "minecraft:crafting_table"
+    },
+    {
+      "kind": "block",
+      "at": { "x": 6, "y": 1, "z": 6 },
+      "blockId": "minecraft:chest"
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:spruce_door[facing=south,half=lower,hinge=left,open=false]",
+      "offset": { "x": 4, "y": 1, "z": 2 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:spruce_door[facing=south,half=upper,hinge=left,open=false]",
+      "offset": { "x": 4, "y": 2, "z": 2 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:red_bed[facing=east,part=foot,occupied=false]",
+      "offset": { "x": 2, "y": 1, "z": 6 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:red_bed[facing=east,part=head,occupied=false]",
+      "offset": { "x": 3, "y": 1, "z": 6 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:lantern[hanging=true]",
+      "offset": { "x": 3, "y": 3, "z": 4 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:lantern[hanging=true]",
+      "offset": { "x": 6, "y": 3, "z": 4 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:campfire[lit=true,signal_fire=false,waterlogged=false]",
+      "offset": { "x": 2, "y": 1, "z": 7 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:cobblestone_wall",
+      "offset": { "x": 2, "y": 2, "z": 7 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:cobblestone_wall",
+      "offset": { "x": 2, "y": 3, "z": 7 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:lantern[hanging=true]",
+      "offset": { "x": 0, "y": 3, "z": 0 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:lantern[hanging=true]",
+      "offset": { "x": 8, "y": 3, "z": 0 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:dark_oak_stairs[facing=south,half=bottom,shape=straight]",
+      "offset": { "x": 1, "y": 5, "z": 2 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:dark_oak_stairs[facing=south,half=bottom,shape=straight]",
+      "offset": { "x": 2, "y": 5, "z": 2 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:dark_oak_stairs[facing=south,half=bottom,shape=straight]",
+      "offset": { "x": 6, "y": 5, "z": 2 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:dark_oak_stairs[facing=north,half=bottom,shape=straight]",
+      "offset": { "x": 1, "y": 5, "z": 7 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:dark_oak_stairs[facing=north,half=bottom,shape=straight]",
+      "offset": { "x": 2, "y": 5, "z": 7 }
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:dark_oak_stairs[facing=north,half=bottom,shape=straight]",
+      "offset": { "x": 6, "y": 5, "z": 7 }
+    }
+  ]
+}
