@@ -219,6 +219,25 @@
   - mcp-server/test/mcp-server.test.ts (updated)
   - mcp-server/test/mcp-tools.test.ts (updated)
 
+### Phase 12: Overlap-Aware Builder
+- **Status:** complete
+- **Started:** 2026-04-05 00:17 Asia/Shanghai
+- Actions taken:
+  - Reviewed the live space-model seam and decided to keep build-site planning in `mcp-server`
+  - Wrote failing tests first for whole-volume overlap detection, non-overlapping floating site selection, and absolute blueprint execution-plan expansion
+  - Implemented `COZY_CABIN_V1`, `assessBlueprintPlacement`, `findFloatingPlacement`, and `buildExecutionPlan`
+  - Tightened planner ranking so detached empty-air sites beat placements that merely clear the build volume above an existing platform
+  - Verified the full `mcp-server` suite and TypeScript build
+  - Used the planner against the live game scene, selected a zero-overlap site at `27,279,-2`, and built a medium cozy cabin there
+- Files created/modified:
+  - docs/plans/2026-04-05-overlap-aware-builder-design.md (created)
+  - README.md (updated)
+  - task_plan.md (updated)
+  - findings.md (updated)
+  - progress.md (updated)
+  - mcp-server/src/builder/planner.ts (created)
+  - mcp-server/test/build-planner.test.ts (created)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -254,6 +273,12 @@
 | Extended mod tests | `JAVA_HOME=\"$HOME/Library/Application Support/PrismLauncher/java/java-runtime-gamma\" GRADLE_USER_HOME=$PWD/.gradle-home ./gradlew :mod:test --no-daemon` | Java bridge tests pass with inventory endpoint | Succeeds | ✓ |
 | Extended mod build | `JAVA_HOME=\"$HOME/Library/Application Support/PrismLauncher/java/java-runtime-gamma\" GRADLE_USER_HOME=$PWD/.gradle-home ./gradlew :mod:build --no-daemon` | Mod compiles and remaps jar with inventory support | Succeeds | ✓ |
 | Live MCP response inspection | `client.callTool({ name: \"get_player_state\" })` against current stdio server | Return a success payload or a diagnosable error shape | Returned `isError=true` with `Failed to read player state: fetch failed`, which correctly exposed bridge unavailability | ✓ |
+| Builder tests (red) | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm test -- test/build-planner.test.ts` before planner existed | Fails for missing planner module | Failed with `ERR_MODULE_NOT_FOUND` for `src/builder/planner.js` | ✓ |
+| Builder tests (green) | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm test -- test/build-planner.test.ts` | Planner tests pass | 3/3 passing | ✓ |
+| Builder full suite | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm test` | Full MCP server suite still passes | 28/28 passing | ✓ |
+| Builder TypeScript build | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm run build` | TypeScript compile succeeds with planner module | Succeeds | ✓ |
+| Live planner verification | `scan_local_space radius=12 down=4 up=12` + `findFloatingPlacement` | Returns a zero-overlap cabin site | Chose `27,279,-2` with `overlappingBlockCount=0`, `overlappingPois=[]`, `supportingColumnCount=0` | ✓ |
+| Live cabin build | Execute `buildExecutionPlan(COZY_CABIN_V1, {27,279,-2})` through MCP tools | Cabin is built without intersecting existing structure | 23 actions executed; follow-up scan found only the new bed/chest/crafting-table POIs inside the build bounds | ✓ |
 | Mod action build | `./gradlew :mod:build --no-daemon` | Remapped jar builds with new action surface | Succeeds | ✓ |
 
 ## Error Log

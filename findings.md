@@ -60,6 +60,11 @@
 - Inventory export is intentionally narrow: only non-empty slots are surfaced, with stable slot index, item id, count, custom-name flag, and damage/max-damage metadata
 - When debugging live MCP calls, the SDK returned `isError=true` with text `Failed to read player state: fetch failed`; the real issue was bridge unavailability, not a malformed success payload
 - A missing listener on `127.0.0.1:47127` is enough to explain the live failure; the selected Prism instance had already exited by the time the new wrappers were exercised
+- The next failure mode after “can place blocks” was site selection, not raw construction: a house can look coherent and still intersect an existing bridge/platform if only anchor points are checked
+- The new planner fixes that by evaluating the whole build volume against occupied runs and POIs before any block is placed
+- `COZY_CABIN_V1` is the first reusable medium blueprint: 7x8 footprint, porch, oak/spruce shell, dark-oak roof, windows, door, bed, chest, crafting table, and lanterns
+- The planner now prefers the fewest supporting columns under the footprint, which biases it toward detached empty air instead of stacking the next house above the current village platform
+- Live verification built a non-overlapping cabin at `27,279,-2` with zero occupied-volume overlap and zero POI overlap before construction
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -82,6 +87,8 @@
 | Implement the first “full power” slice as typed world actions plus `run_command` | This gives near-admin-complete control without making routine placement/fill flows depend on raw chat commands |
 | Keep common high-impact actions typed even when `run_command` could express them | Typed tools give the agent a narrower, more stable API surface and reduce prompt overhead |
 | Return only non-empty inventory slots from the bridge | Empty-slot spam adds no planning value and wastes payload budget |
+| Evaluate whole-blueprint bounds before construction instead of only checking candidate anchors | Anchor-only checks miss collisions with bridges, roofs, and walkways that cut through the house volume |
+| Prefer detached empty-air placements over “technically clear” stacked placements | A build volume can be collision-free yet still feel visually merged with the structure below |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -98,6 +105,8 @@
 | New code cannot affect the already running MC process without restart | The updated jar can be staged into the selected instance, but Fabric will only load it on the next launch |
 | Debugging the new typed wrappers initially looked like an SDK shape issue | Inspecting the raw `callTool` result showed the real problem was an MCP error result caused by a dead bridge listener |
 | The selected Prism instance was no longer running during live wrapper verification | `lsof` showed nothing listening on `127.0.0.1:47127`, and `latest.log` ended with a normal save-and-exit sequence |
+| The first built cabin overlapped the visible village structure despite looking coherent | The old build flow only filtered anchor points and did not reason about the full building envelope |
+| Pure “clear volume” scoring still picked sites above the existing platform | Ranking now minimizes the number of occupied support columns underneath the footprint before distance |
 
 ## Resources
 - Workspace: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot
@@ -136,6 +145,7 @@
 - New semantic tool: `analyze_local_space`
 - New admin tools: `place_block`, `break_block`, `fill_box`, `clear_box`, `run_command`
 - New extended admin tools: `get_inventory`, `summon_entity`, `set_time`, `set_weather`, `give_item`
+- New builder primitives: `assessBlueprintPlacement`, `findFloatingPlacement`, `buildExecutionPlan`, `COZY_CABIN_V1`
 
 ## Visual/Browser Findings
 - User screenshot shows a Fabric 1.20.1 setup baseline with LWJGL 3 3.3.1, Minecraft 1.20.1, Intermediary Mappings 1.20.1, and Fabric Loader 0.17.2

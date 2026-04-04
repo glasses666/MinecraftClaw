@@ -4,7 +4,7 @@
 Extend the verified Fabric 1.20.1 + MCP bridge so the agent can reconstruct and semantically interpret the player's nearby 3D space, not just read player position and teleport.
 
 ## Current Phase
-Phase 12
+Phase 13
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -81,6 +81,14 @@ Phase 12
 - [x] Add typed wrappers for summon, time, weather, and give-item actions
 - [x] Build and test the extended control surface
 - [x] Stage the rebuilt jar into the selected Prism instance without touching the running process
+- [x] Commit and push the milestone
+- **Status:** complete
+
+### Phase 13: Overlap-Aware Builder
+- [x] Add red-first tests for whole-volume build overlap checks
+- [x] Add a reusable medium cabin blueprint and absolute execution-plan expansion
+- [x] Add a planner that prefers truly empty nearby space instead of stacked overlap
+- [x] Verify the planner in the live game and build a non-overlapping cabin
 - [ ] Commit and push the milestone
 - **Status:** in_progress
 
@@ -91,6 +99,7 @@ Phase 12
 4. Which semantic signals are stable enough to expose before doing larger-area world stitching?
 5. Which small set of world actions gives near-full creative/admin control without turning the MCP layer into raw command soup?
 6. Which higher-level admin actions should stay typed even though `run_command` can already express them?
+7. How should the planner rank “clear but floating above a structure” versus “clear and fully detached in open air”?
 
 ## Decisions Made
 | Decision | Rationale |
@@ -109,6 +118,8 @@ Phase 12
 | Expose admin control as a hybrid of typed actions plus `run_command` | Typed tools stay stable for agent use while raw commands remain the unrestricted escape hatch |
 | Expose inventory as a dedicated bridge read instead of scraping command output | Inventory is structured state, and the bridge can return it without chat parsing or side effects |
 | Implement summon/time/weather/give as typed MCP wrappers over `run_command` | These actions work immediately against the existing bridge command executor while keeping the tool surface ergonomic |
+| Keep build-site planning in `mcp-server` for now | Placement heuristics change faster than bridge contracts, and the current scan already contains enough information to reason about collisions |
+| Prefer the fewest supporting columns under a floating build footprint | This biases the planner toward genuinely detached empty space instead of stacking new cabins above existing platforms |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -122,6 +133,7 @@ Phase 12
 | The new admin action code cannot hot-load into the already running game instance | 1 | Build and stage the new jar only; do not restart or kill the user’s current process |
 | Live MCP debugging initially failed with `structuredContent.player` undefined | 1 | Inspected the raw SDK result and confirmed the real issue was an error result shape rather than a success payload |
 | Live MCP calls later failed with `fetch failed` | 1 | Confirmed the selected Prism instance had already exited, so nothing was listening on `127.0.0.1:47127` |
+| A “clear” floating placement could still sit directly above the densest existing platform | 1 | Rank candidate sites by the number of supporting columns underneath the footprint before distance to the player |
 
 ## Notes
 - Update phase status as research converges

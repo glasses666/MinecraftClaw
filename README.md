@@ -19,6 +19,7 @@ The repository now contains:
 - a first-pass MCP-side raw export cleaner
 - live local-space scanning and semantic local-space analysis
 - admin-grade world editing and command execution tools
+- overlap-aware blueprint planning for medium cabin builds
 
 ### Fabric smoke-test commands
 
@@ -98,3 +99,20 @@ The next control slice extends the admin surface with typed wrappers for common 
 - `set_time`
 - `set_weather`
 - `give_item`
+
+## Builder Prototype
+
+The MCP server now includes a first overlap-aware building prototype in `mcp-server/src/builder/planner.ts`.
+
+Current behavior:
+
+- `assessBlueprintPlacement` checks a whole building-sized volume against occupied runs and POIs
+- `findFloatingPlacement` searches the current local scan for a non-overlapping floating origin
+- `buildExecutionPlan` expands a reusable blueprint into absolute block, fill, and command steps
+- `COZY_CABIN_V1` is the first reusable medium cabin blueprint
+
+This is not a general autonomous builder yet, but it is the first version that can:
+
+1. reject house sites that would intersect an existing structure
+2. choose a clear build box automatically
+3. execute a larger, nicer house than the initial box test
