@@ -18,6 +18,7 @@ The repository now contains:
 - raw world snapshot export on player join and via command
 - a first-pass MCP-side raw export cleaner
 - live local-space scanning and semantic local-space analysis
+- admin-grade world editing and command execution tools
 
 ### Fabric smoke-test commands
 
@@ -78,3 +79,8 @@ The current milestone proves end-to-end local scene understanding:
 - `teleport_player`
 - `scan_local_space`
 - `analyze_local_space`
+- `place_block`
+- `break_block`
+- `fill_box`
+- `clear_box`
+- `run_command`

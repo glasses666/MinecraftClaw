@@ -21,7 +21,18 @@ test("createToolHandlers exposes get_player_state as MCP-friendly structured con
       yaw: 0,
       pitch: 0
     }),
-    scanLocalSpace: async () => sampleLocalSpace()
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
   });
 
   const result = await handlers.getPlayerState();
@@ -55,7 +66,18 @@ test("createToolHandlers validates teleport input before calling the bridge", as
       called = true;
       throw new Error("should not be called");
     },
-    scanLocalSpace: async () => sampleLocalSpace()
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
   });
 
   const result = await handlers.teleportPlayer({
@@ -87,7 +109,18 @@ test("createToolHandlers exposes scan_local_space as structured local space cont
       yaw: 0,
       pitch: 0
     }),
-    scanLocalSpace: async () => sampleLocalSpace()
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
   });
 
   const result = await handlers.scanLocalSpace({ radius: 4, down: 4, up: 6 });
@@ -118,7 +151,18 @@ test("createToolHandlers exposes analyze_local_space as semantic space-model con
       yaw: 0,
       pitch: 0
     }),
-    scanLocalSpace: async () => sampleLocalSpace()
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
   });
 
   const result = await handlers.analyzeLocalSpace({ radius: 4, down: 4, up: 6 });
@@ -128,6 +172,122 @@ test("createToolHandlers exposes analyze_local_space as semantic space-model con
   assert.equal(model?.summary?.dominantSceneKind, "natural");
   assert.match(readFirstText(result.content), /scene/i);
   assert.match(readFirstText(result.content), /buildability/i);
+});
+
+test("createToolHandlers exposes place_block with structured world-action content", async () => {
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.placeBlock({ x: 40, y: 270, z: -8, blockId: "minecraft:gold_block" });
+
+  assert.equal(result.isError, false);
+  assert.equal((result.structuredContent as { result?: { action?: string } }).result?.action, "place_block");
+  assert.match(readFirstText(result.content), /minecraft:gold_block/);
+});
+
+test("createToolHandlers maps clear_box to fill_box with minecraft:air", async () => {
+  let receivedFillRequest: unknown;
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async (request) => {
+      receivedFillRequest = request;
+      return sampleActionResult("fill_box", 27, request.blockId);
+    },
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.clearBox({ x1: 0, y1: 64, z1: 0, x2: 2, y2: 66, z2: 2 });
+
+  assert.equal(result.isError, false);
+  assert.deepEqual(receivedFillRequest, {
+    x1: 0,
+    y1: 64,
+    z1: 0,
+    x2: 2,
+    y2: 66,
+    z2: 2,
+    blockId: "minecraft:air"
+  });
+  assert.equal((result.structuredContent as { result?: { action?: string; blockId?: string } }).result?.action, "clear_box");
+});
+
+test("createToolHandlers rejects malformed block identifiers before calling the bridge", async () => {
+  let called = false;
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => {
+      called = true;
+      return sampleActionResult("place_block", 1, "minecraft:gold_block");
+    },
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.placeBlock({ x: 40, y: 270, z: -8, blockId: "Gold Block" });
+
+  assert.equal(called, false);
+  assert.equal(result.isError, true);
+  assert.match(readFirstText(result.content), /blockId/);
+});
+
+test("createToolHandlers exposes run_command as structured command execution content", async () => {
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.runCommand({ command: "time set day" });
+
+  assert.equal(result.isError, false);
+  assert.equal((result.structuredContent as { result?: { action?: string } }).result?.action, "run_command");
+  assert.match(readFirstText(result.content), /time set day/);
 });
 
 function readFirstText(content: unknown): string {
@@ -187,5 +347,32 @@ function sampleLocalSpace() {
     pointsOfInterest: [
       { category: "entity", kindId: "minecraft:villager", label: "Villager", position: { x: 24, y: 269, z: 11 } }
     ]
+  };
+}
+
+function samplePlayer() {
+  return {
+    name: "GLAsserrrr",
+    dimension: "minecraft:overworld",
+    position: { x: 26, y: 269, z: 13 },
+    exactPosition: { x: 26.7674, y: 269.5, z: 13.2385 },
+    yaw: -94.5,
+    pitch: -4.5
+  };
+}
+
+function sampleActionResult(action: string, changedBlocks: number, blockId: string) {
+  return {
+    action,
+    success: true,
+    dimension: "minecraft:overworld",
+    changedBlocks,
+    blockId,
+    primaryPosition: { x: 40, y: 270, z: -8 },
+    bounds: {
+      min: { x: 40, y: 270, z: -8 },
+      max: { x: 40, y: 270, z: -8 }
+    },
+    message: `Applied ${blockId}`
   };
 }

@@ -153,6 +153,107 @@ test("MinecraftClawBridgeClient.scanLocalSpace requests a compressed local 3D sp
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
 
+test("MinecraftClawBridgeClient.placeBlock sends typed placement requests to the mod bridge", async () => {
+  let receivedBody = "";
+  const server = createServer((request, response) => {
+    if (request.method === "POST" && request.url === "/world/block/place") {
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        receivedBody += chunk;
+      });
+      request.on("end", () => {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(
+          JSON.stringify({
+            status: "ok",
+            result: sampleActionResult("place_block", 1, "minecraft:gold_block")
+          })
+        );
+      });
+      return;
+    }
+
+    response.writeHead(404).end();
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address !== null && typeof address !== "string");
+
+  const client = new MinecraftClawBridgeClient({
+    host: "127.0.0.1",
+    port: (address as AddressInfo).port,
+    timeoutMs: 5_000
+  });
+
+  const result = await client.placeBlock({ x: 40, y: 270, z: -8, blockId: "minecraft:gold_block" });
+
+  assert.deepEqual(JSON.parse(receivedBody), {
+    x: 40,
+    y: 270,
+    z: -8,
+    blockId: "minecraft:gold_block"
+  });
+  assert.equal(result.action, "place_block");
+  assert.equal(result.changedBlocks, 1);
+  assert.equal(result.blockId, "minecraft:gold_block");
+
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+});
+
+test("MinecraftClawBridgeClient.runCommand sends raw commands to the mod bridge", async () => {
+  let receivedBody = "";
+  const server = createServer((request, response) => {
+    if (request.method === "POST" && request.url === "/world/command") {
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        receivedBody += chunk;
+      });
+      request.on("end", () => {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(
+          JSON.stringify({
+            status: "ok",
+            result: {
+              action: "run_command",
+              success: true,
+              dimension: "minecraft:overworld",
+              changedBlocks: 0,
+              command: "time set day",
+              commandResult: 1,
+              message: "Executed command: time set day"
+            }
+          })
+        );
+      });
+      return;
+    }
+
+    response.writeHead(404).end();
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address !== null && typeof address !== "string");
+
+  const client = new MinecraftClawBridgeClient({
+    host: "127.0.0.1",
+    port: (address as AddressInfo).port,
+    timeoutMs: 5_000
+  });
+
+  const result = await client.runCommand({ command: "time set day" });
+
+  assert.deepEqual(JSON.parse(receivedBody), {
+    command: "time set day"
+  });
+  assert.equal(result.action, "run_command");
+  assert.equal(result.command, "time set day");
+  assert.equal(result.commandResult, 1);
+
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+});
+
 function sampleLocalSpace() {
   return {
     schemaVersion: 1,
@@ -216,5 +317,21 @@ function sampleLocalSpace() {
         position: { x: 24, y: 269, z: 11 }
       }
     ]
+  };
+}
+
+function sampleActionResult(action: string, changedBlocks: number, blockId: string) {
+  return {
+    action,
+    success: true,
+    dimension: "minecraft:overworld",
+    changedBlocks,
+    blockId,
+    primaryPosition: { x: 40, y: 270, z: -8 },
+    bounds: {
+      min: { x: 40, y: 270, z: -8 },
+      max: { x: 40, y: 270, z: -8 }
+    },
+    message: `Applied ${blockId}`
   };
 }

@@ -82,5 +82,106 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
     async ({ radius, down, up }) => handlers.analyzeLocalSpace({ radius, down, up })
   );
 
+  server.registerTool(
+    "place_block",
+    {
+      title: "Place Block",
+      description: "Place a block by namespaced block id at an absolute block position in the current dimension.",
+      inputSchema: {
+        x: z.number().int().describe("Absolute block X coordinate."),
+        y: z.number().int().describe("Absolute block Y coordinate."),
+        z: z.number().int().describe("Absolute block Z coordinate."),
+        blockId: z.string().min(3).describe("Minecraft block id such as minecraft:oak_planks.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ x, y, z, blockId }) => handlers.placeBlock({ x, y, z, blockId })
+  );
+
+  server.registerTool(
+    "break_block",
+    {
+      title: "Break Block",
+      description: "Clear a block position by replacing the current block with air.",
+      inputSchema: {
+        x: z.number().int().describe("Absolute block X coordinate."),
+        y: z.number().int().describe("Absolute block Y coordinate."),
+        z: z.number().int().describe("Absolute block Z coordinate.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ x, y, z }) => handlers.breakBlock({ x, y, z })
+  );
+
+  server.registerTool(
+    "fill_box",
+    {
+      title: "Fill Box",
+      description: "Fill an axis-aligned box with a block id in the current dimension.",
+      inputSchema: {
+        x1: z.number().int().describe("First corner X."),
+        y1: z.number().int().describe("First corner Y."),
+        z1: z.number().int().describe("First corner Z."),
+        x2: z.number().int().describe("Second corner X."),
+        y2: z.number().int().describe("Second corner Y."),
+        z2: z.number().int().describe("Second corner Z."),
+        blockId: z.string().min(3).describe("Minecraft block id such as minecraft:glass.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ x1, y1, z1, x2, y2, z2, blockId }) => handlers.fillBox({ x1, y1, z1, x2, y2, z2, blockId })
+  );
+
+  server.registerTool(
+    "clear_box",
+    {
+      title: "Clear Box",
+      description: "Fill an axis-aligned box with air in the current dimension.",
+      inputSchema: {
+        x1: z.number().int().describe("First corner X."),
+        y1: z.number().int().describe("First corner Y."),
+        z1: z.number().int().describe("First corner Z."),
+        x2: z.number().int().describe("Second corner X."),
+        y2: z.number().int().describe("Second corner Y."),
+        z2: z.number().int().describe("Second corner Z.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ x1, y1, z1, x2, y2, z2 }) => handlers.clearBox({ x1, y1, z1, x2, y2, z2 })
+  );
+
+  server.registerTool(
+    "run_command",
+    {
+      title: "Run Command",
+      description: "Execute a raw server command with high permission level. Do not include the leading slash.",
+      inputSchema: {
+        command: z.string().min(1).describe("Server command text, with or without a leading slash.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ command }) => handlers.runCommand({ command })
+  );
+
   return server;
 }

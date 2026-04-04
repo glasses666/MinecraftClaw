@@ -35,6 +35,9 @@ public final class MinecraftClawBridgeServer {
 		server.createContext("/player", this::handlePlayerState);
 		server.createContext("/player/teleport", this::handleTeleportPlayer);
 		server.createContext("/space/local", this::handleLocalSpace);
+		server.createContext("/world/block/place", this::handlePlaceBlock);
+		server.createContext("/world/fill", this::handleFillBox);
+		server.createContext("/world/command", this::handleCommand);
 		server.start();
 	}
 
@@ -78,6 +81,27 @@ public final class MinecraftClawBridgeServer {
 		});
 	}
 
+	private void handlePlaceBlock(HttpExchange exchange) throws IOException {
+		handleAction(exchange, "POST", () -> {
+			String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			return controller.placeBlock(MinecraftClawBridgeJson.parsePlaceBlockRequest(body));
+		});
+	}
+
+	private void handleFillBox(HttpExchange exchange) throws IOException {
+		handleAction(exchange, "POST", () -> {
+			String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			return controller.fillBox(MinecraftClawBridgeJson.parseFillBoxRequest(body));
+		});
+	}
+
+	private void handleCommand(HttpExchange exchange) throws IOException {
+		handleAction(exchange, "POST", () -> {
+			String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			return controller.runCommand(MinecraftClawBridgeJson.parseCommandRequest(body));
+		});
+	}
+
 	private void handle(HttpExchange exchange, String expectedMethod, BridgeHandler handler) throws IOException {
 		try (exchange) {
 			if (!expectedMethod.equals(exchange.getRequestMethod())) {
@@ -114,6 +138,24 @@ public final class MinecraftClawBridgeServer {
 		}
 	}
 
+	private void handleAction(HttpExchange exchange, String expectedMethod, ActionHandler handler) throws IOException {
+		try (exchange) {
+			if (!expectedMethod.equals(exchange.getRequestMethod())) {
+				writeJsonResponse(exchange, 405, MinecraftClawBridgeJson.errorResponse("Method not allowed."));
+				return;
+			}
+
+			BridgeActionResult result = handler.handle();
+			writeJsonResponse(exchange, 200, MinecraftClawBridgeJson.actionResponse(result));
+		} catch (IllegalArgumentException exception) {
+			writeJsonResponse(exchange, 400, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		} catch (IllegalStateException exception) {
+			writeJsonResponse(exchange, 503, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		} catch (Exception exception) {
+			writeJsonResponse(exchange, 500, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		}
+	}
+
 	private static void writeJsonResponse(HttpExchange exchange, int statusCode, String body) throws IOException {
 		byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
 		exchange.getResponseHeaders().set("content-type", "application/json; charset=utf-8");
@@ -129,5 +171,10 @@ public final class MinecraftClawBridgeServer {
 	@FunctionalInterface
 	private interface SpaceHandler {
 		LocalSpaceSnapshot handle() throws Exception;
+	}
+
+	@FunctionalInterface
+	private interface ActionHandler {
+		BridgeActionResult handle() throws Exception;
 	}
 }

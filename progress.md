@@ -156,6 +156,39 @@
   - mcp-server/test/mcp-tools.test.ts (updated)
   - mcp-server/test/space-model.test.ts (created)
 
+### Phase 10: Admin World Actions
+- **Status:** complete
+- **Started:** 2026-04-04 23:32 Asia/Shanghai
+- Actions taken:
+  - Chose a hybrid admin surface: typed world actions plus a raw command escape hatch
+  - Wrote failing tests first for new bridge endpoints, MCP client methods, tool handlers, and MCP tool registration
+  - Implemented mod-side block placement, box fill, and high-permission command execution
+  - Implemented MCP-side `break_block` and `clear_box` as stable aliases over air placement and air fill
+  - Ran the full MCP server test suite and both `:mod:test` and `:mod:build` under Prism’s Java 17 runtime
+  - Copied the rebuilt jar into `/Users/dracoglasser/Library/Application Support/PrismLauncher/instances/乌托邦探险之旅3.5fix（codex）/minecraft/mods/` without restarting or killing the current Minecraft process
+- Files created/modified:
+  - task_plan.md (updated)
+  - findings.md (updated)
+  - progress.md (updated)
+  - README.md (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/BridgeActionResult.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/BridgeBlockBounds.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/PlaceBlockRequest.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/FillBoxRequest.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/CommandRequest.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeController.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeJson.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeServer.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawGameBridgeController.java (updated)
+  - mod/src/test/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeServerTest.java (updated)
+  - mcp-server/src/bridge/client.ts (updated)
+  - mcp-server/src/index.ts (updated)
+  - mcp-server/src/mcp/server.ts (updated)
+  - mcp-server/src/mcp/tools.ts (updated)
+  - mcp-server/test/bridge-client.test.ts (updated)
+  - mcp-server/test/mcp-server.test.ts (updated)
+  - mcp-server/test/mcp-tools.test.ts (updated)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -181,6 +214,11 @@
 | Semantic model tests (green) | `npm test` | Semantic analysis tests pass | 14/14 passing | ✓ |
 | Semantic model build | `npm run build` | TypeScript compile succeeds | Succeeds after explicit test-side type narrowing | ✓ |
 | Live semantic MCP analysis | `analyze_local_space radius=6 down=4 up=6` | Returns semantic scene model | Returned `scene=mixed`, `buildability=constrained`, one natural-ground region, one cultivated-land structure, and flat build anchors | ✓ |
+| Admin action tests (red) | `npm test` and `:mod:test` before implementation | New bridge and MCP action tests fail for missing methods/types | Failed on missing `placeBlock`, `runCommand`, `BridgeActionResult`, and related request types | ✓ |
+| Admin action tests (green) | `cd mcp-server && npm test` | Full MCP suite passes with world actions | 20/20 passing | ✓ |
+| MCP action build | `cd mcp-server && npm run build` | TypeScript compile succeeds with new action tools | Succeeds | ✓ |
+| Mod action tests | `./gradlew :mod:test --no-daemon` | Java bridge tests pass with new endpoints | Succeeds | ✓ |
+| Mod action build | `./gradlew :mod:build --no-daemon` | Remapped jar builds with new action surface | Succeeds | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -199,15 +237,17 @@
 | 2026-04-04 22:28 | Live `/space/local` returned `404` after implementation | 1 | Confirmed the running Prism instance still had the older jar, copied the rebuilt jar, and relaunched |
 | 2026-04-04 22:38 | Prism reopened without auto-entering `新的世界` | 1 | Continued after the user manually entered the world instead of forcing a config rewrite |
 | 2026-04-04 23:18 | `npm run build` failed even though tests passed | 1 | Explicitly narrowed `structuredContent.model` in the test so `tsc` could type-check the suite |
+| 2026-04-04 23:34 | `rg` against `~/.gradle-home` failed | 1 | The actual Gradle cache is repo-local at `.gradle-home`, so the search path was corrected |
+| 2026-04-04 23:46 | The already running Minecraft process still has the old mod code loaded | 1 | Build and stage the new jar only; avoid restarting or killing the user’s current session |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 10 |
-| Where am I going? | Commit the semantic-analysis milestone and then iterate on larger-area region stitching or higher-resolution scanning |
-| What's the goal? | Give the agent a real-time semantic model of the player's nearby 3D environment |
-| What have I learned? | The current nearby scene can already be lifted into semantic regions, structures, and buildability hints without changing the mod bridge |
-| What have I done? | Implemented and verified `analyze_local_space` end-to-end on top of the live Fabric bridge and MCP server |
+| Where am I? | Phase 11 |
+| Where am I going? | Stage the new jar into the selected Prism instance, commit the admin-action milestone, and then iterate on larger-area stitching or richer action semantics |
+| What's the goal? | Give the agent near-admin-complete world control plus semantic local-space understanding |
+| What have I learned? | Typed world actions plus `run_command` give a much better “full power” control surface than raw commands alone |
+| What have I done? | Implemented and verified `place_block`, `break_block`, `fill_box`, `clear_box`, and `run_command` across the mod bridge and MCP server |
 
 ---
 *Update after completing each phase or encountering errors*

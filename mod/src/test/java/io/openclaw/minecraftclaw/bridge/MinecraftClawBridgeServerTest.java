@@ -94,6 +94,70 @@ class MinecraftClawBridgeServerTest {
 		assertEquals(26, json.getAsJsonObject("space").getAsJsonArray("columns").get(0).getAsJsonObject().get("x").getAsInt());
 	}
 
+	@Test
+	void placeBlockEndpointPassesBlockPlacementToController() throws IOException, InterruptedException {
+		StubController controller = new StubController(snapshot(26, 269, 13));
+		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);
+		server.start();
+
+		HttpResponse<String> response = httpClient.send(
+			HttpRequest.newBuilder(server.uri("/world/block/place"))
+				.header("content-type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString("{\"x\":40,\"y\":270,\"z\":-8,\"blockId\":\"minecraft:gold_block\"}"))
+				.build(),
+			HttpResponse.BodyHandlers.ofString()
+		);
+
+		assertEquals(200, response.statusCode());
+		assertNotNull(controller.lastPlaceBlockRequest);
+		assertEquals("minecraft:gold_block", controller.lastPlaceBlockRequest.blockId());
+		JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+		assertEquals("ok", json.get("status").getAsString());
+		assertEquals("place_block", json.getAsJsonObject("result").get("action").getAsString());
+	}
+
+	@Test
+	void fillEndpointPassesBoxFillToController() throws IOException, InterruptedException {
+		StubController controller = new StubController(snapshot(26, 269, 13));
+		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);
+		server.start();
+
+		HttpResponse<String> response = httpClient.send(
+			HttpRequest.newBuilder(server.uri("/world/fill"))
+				.header("content-type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString("{\"x1\":0,\"y1\":64,\"z1\":0,\"x2\":1,\"y2\":65,\"z2\":1,\"blockId\":\"minecraft:glass\"}"))
+				.build(),
+			HttpResponse.BodyHandlers.ofString()
+		);
+
+		assertEquals(200, response.statusCode());
+		assertNotNull(controller.lastFillBoxRequest);
+		assertEquals("minecraft:glass", controller.lastFillBoxRequest.blockId());
+		JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+		assertEquals("fill_box", json.getAsJsonObject("result").get("action").getAsString());
+	}
+
+	@Test
+	void commandEndpointPassesRawCommandsToController() throws IOException, InterruptedException {
+		StubController controller = new StubController(snapshot(26, 269, 13));
+		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);
+		server.start();
+
+		HttpResponse<String> response = httpClient.send(
+			HttpRequest.newBuilder(server.uri("/world/command"))
+				.header("content-type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString("{\"command\":\"time set day\"}"))
+				.build(),
+			HttpResponse.BodyHandlers.ofString()
+		);
+
+		assertEquals(200, response.statusCode());
+		assertNotNull(controller.lastCommandRequest);
+		assertEquals("time set day", controller.lastCommandRequest.command());
+		JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+		assertEquals("run_command", json.getAsJsonObject("result").get("action").getAsString());
+	}
+
 	private static BridgePlayerSnapshot snapshot(int x, int y, int z) {
 		return new BridgePlayerSnapshot(
 			"GLAsserrrr",
@@ -109,6 +173,9 @@ class MinecraftClawBridgeServerTest {
 		private BridgePlayerSnapshot playerState;
 		private TeleportRequest lastTeleportRequest;
 		private SpaceScanRequest lastSpaceScanRequest;
+		private PlaceBlockRequest lastPlaceBlockRequest;
+		private FillBoxRequest lastFillBoxRequest;
+		private CommandRequest lastCommandRequest;
 
 		private StubController(BridgePlayerSnapshot playerState) {
 			this.playerState = playerState;
@@ -178,6 +245,53 @@ class MinecraftClawBridgeServerTest {
 						new BridgeBlockPosition(24, 269, 11)
 					)
 				)
+			);
+		}
+
+		@Override
+		public BridgeActionResult placeBlock(PlaceBlockRequest request) {
+			lastPlaceBlockRequest = request;
+			return actionResult("place_block", 1, request.blockId());
+		}
+
+		@Override
+		public BridgeActionResult fillBox(FillBoxRequest request) {
+			lastFillBoxRequest = request;
+			return actionResult("fill_box", 8, request.blockId());
+		}
+
+		@Override
+		public BridgeActionResult runCommand(CommandRequest request) {
+			lastCommandRequest = request;
+			return new BridgeActionResult(
+				"run_command",
+				true,
+				playerState.dimension(),
+				0,
+				null,
+				null,
+				null,
+				request.command(),
+				1,
+				"Executed command: " + request.command()
+			);
+		}
+
+		private BridgeActionResult actionResult(String action, int changedBlocks, String blockId) {
+			return new BridgeActionResult(
+				action,
+				true,
+				playerState.dimension(),
+				changedBlocks,
+				blockId,
+				new BridgeBlockPosition(40, 270, -8),
+				new BridgeBlockBounds(
+					new BridgeBlockPosition(40, 270, -8),
+					new BridgeBlockPosition(41, 271, -7)
+				),
+				null,
+				null,
+				"Applied " + blockId
 			);
 		}
 	}

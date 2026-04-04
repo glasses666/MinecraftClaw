@@ -27,6 +27,27 @@ export interface TeleportRequest {
   z: number;
 }
 
+export interface PlaceBlockRequest {
+  x: number;
+  y: number;
+  z: number;
+  blockId: string;
+}
+
+export interface FillBoxRequest {
+  x1: number;
+  y1: number;
+  z1: number;
+  x2: number;
+  y2: number;
+  z2: number;
+  blockId: string;
+}
+
+export interface CommandRequest {
+  command: string;
+}
+
 export interface SpaceScanRequest {
   radius?: number;
   down?: number;
@@ -95,6 +116,22 @@ export interface LocalSpaceSnapshot {
   pointsOfInterest: SpacePointOfInterest[];
 }
 
+export interface BridgeActionResult {
+  action: string;
+  success: boolean;
+  dimension: string;
+  changedBlocks: number;
+  blockId?: string;
+  primaryPosition?: BlockPosition;
+  bounds?: {
+    min: BlockPosition;
+    max: BlockPosition;
+  };
+  command?: string;
+  commandResult?: number;
+  message: string;
+}
+
 interface PlayerEnvelope {
   status: string;
   player?: BridgePlayerState;
@@ -104,6 +141,12 @@ interface PlayerEnvelope {
 interface SpaceEnvelope {
   status: string;
   space?: LocalSpaceSnapshot;
+  error?: string;
+}
+
+interface ActionEnvelope {
+  status: string;
+  result?: BridgeActionResult;
   error?: string;
 }
 
@@ -140,6 +183,36 @@ export class MinecraftClawBridgeClient {
     });
   }
 
+  public async placeBlock(request: PlaceBlockRequest): Promise<BridgeActionResult> {
+    return this.requestAction("/world/block/place", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(request)
+    });
+  }
+
+  public async fillBox(request: FillBoxRequest): Promise<BridgeActionResult> {
+    return this.requestAction("/world/fill", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(request)
+    });
+  }
+
+  public async runCommand(request: CommandRequest): Promise<BridgeActionResult> {
+    return this.requestAction("/world/command", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(request)
+    });
+  }
+
   private async requestPlayer(path: string, init: RequestInit): Promise<BridgePlayerState> {
     const response = await fetch(`${this.baseUrl}${path}`, {
       ...init,
@@ -168,5 +241,20 @@ export class MinecraftClawBridgeClient {
     }
 
     return payload.space;
+  }
+
+  private async requestAction(path: string, init: RequestInit): Promise<BridgeActionResult> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(this.config.timeoutMs)
+    });
+
+    const payload = (await response.json()) as ActionEnvelope;
+
+    if (!response.ok || payload.status !== "ok" || payload.result === undefined) {
+      throw new Error(payload.error ?? `Bridge request failed with status ${response.status}`);
+    }
+
+    return payload.result;
   }
 }

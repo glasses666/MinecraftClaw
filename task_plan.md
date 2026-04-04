@@ -4,7 +4,7 @@
 Extend the verified Fabric 1.20.1 + MCP bridge so the agent can reconstruct and semantically interpret the player's nearby 3D space, not just read player position and teleport.
 
 ## Current Phase
-Phase 10
+Phase 11
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -65,6 +65,14 @@ Phase 10
 - [x] Define a minimal semantic layer above local-space scans
 - [x] Add a new MCP tool that returns regions, structures, and buildability
 - [x] Verify the semantic analysis against the live game session
+- [x] Commit and push the milestone
+- **Status:** complete
+
+### Phase 11: Admin World Actions
+- [x] Define the first admin-grade world action surface
+- [x] Add typed world-edit and command tools to the bridge and MCP server
+- [x] Build and test the updated action surface
+- [x] Stage the new jar into the selected Prism instance without touching the running process
 - [ ] Commit and push the milestone
 - **Status:** in_progress
 
@@ -73,6 +81,7 @@ Phase 10
 2. Which parts of the nearby scene should be surfaced as walkable surfaces, occupancy runs, and POIs?
 3. How should the scan be parameterized so resolution can increase without exploding payload size?
 4. Which semantic signals are stable enough to expose before doing larger-area world stitching?
+5. Which small set of world actions gives near-full creative/admin control without turning the MCP layer into raw command soup?
 
 ## Decisions Made
 | Decision | Rationale |
@@ -88,6 +97,7 @@ Phase 10
 | Add a real-time `scan_local_space` MCP tool instead of extending raw export first | The user wants live 3D understanding, and the bridge is already verified end-to-end |
 | Prefer compressed 3D columns plus walkable surfaces over raw block dumps | This preserves spatial structure while keeping the payload small enough for agent use |
 | Add semantic interpretation in the MCP server before changing the mod scan format | This preserves the stable bridge contract and lets heuristics evolve faster than JVM-side world access code |
+| Expose admin control as a hybrid of typed actions plus `run_command` | Typed tools stay stable for agent use while raw commands remain the unrestricted escape hatch |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -98,6 +108,7 @@ Phase 10
 | Prism test launch crashed before mod initialization | 1 | Identified `dynamiccrosshaircompat` as the first hard error and disabled it for retest |
 | `JoinWorldOnLaunch` was set but not honored | 1 | The instance had `OverrideMiscellaneous=false`; live bridge tests proceeded after the world was entered manually/through the running session |
 | `tsx --test` passed but `tsc` failed on `structuredContent` typing | 1 | Narrowed the test-side type explicitly before rebuilding the MCP server |
+| The new admin action code cannot hot-load into the already running game instance | 1 | Build and stage the new jar only; do not restart or kill the user’s current process |
 
 ## Notes
 - Update phase status as research converges

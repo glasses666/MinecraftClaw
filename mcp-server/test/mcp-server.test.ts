@@ -6,7 +6,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 
 import { createMinecraftClawMcpServer } from "../src/mcp/server.js";
 
-test("createMinecraftClawMcpServer registers player-state, scan, semantic analysis, and teleport tools", async () => {
+test("createMinecraftClawMcpServer registers sensing, player, and admin world-action tools", async () => {
   const server = createMinecraftClawMcpServer({
     getPlayerState: async () => ({
       name: "GLAsserrrr",
@@ -24,7 +24,18 @@ test("createMinecraftClawMcpServer registers player-state, scan, semantic analys
       yaw: -94.5,
       pitch: -4.5
     }),
-    scanLocalSpace: async () => sampleLocalSpace()
+    scanLocalSpace: async () => sampleLocalSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
   });
 
   const client = new Client({ name: "minecraftclaw-test-client", version: "0.1.0" });
@@ -38,7 +49,17 @@ test("createMinecraftClawMcpServer registers player-state, scan, semantic analys
   const tools = await client.listTools();
   const toolNames = tools.tools.map((tool) => tool.name).sort();
 
-  assert.deepEqual(toolNames, ["analyze_local_space", "get_player_state", "scan_local_space", "teleport_player"]);
+  assert.deepEqual(toolNames, [
+    "analyze_local_space",
+    "break_block",
+    "clear_box",
+    "fill_box",
+    "get_player_state",
+    "place_block",
+    "run_command",
+    "scan_local_space",
+    "teleport_player"
+  ]);
 
   const result = await client.callTool({
     name: "get_player_state",
@@ -63,6 +84,14 @@ test("createMinecraftClawMcpServer registers player-state, scan, semantic analys
 
   assert.equal(analysis.isError, false);
   assert.match(readFirstText(analysis.content), /scene/i);
+
+  const placement = await client.callTool({
+    name: "place_block",
+    arguments: { x: 40, y: 270, z: -8, blockId: "minecraft:gold_block" }
+  });
+
+  assert.equal(placement.isError, false);
+  assert.match(readFirstText(placement.content), /gold_block/);
 
   await Promise.all([client.close(), server.close()]);
 });
@@ -124,5 +153,21 @@ function sampleLocalSpace() {
     pointsOfInterest: [
       { category: "entity", kindId: "minecraft:villager", label: "Villager", position: { x: 24, y: 269, z: 11 } }
     ]
+  };
+}
+
+function sampleActionResult(action: string, changedBlocks: number, blockId: string) {
+  return {
+    action,
+    success: true,
+    dimension: "minecraft:overworld",
+    changedBlocks,
+    blockId,
+    primaryPosition: { x: 40, y: 270, z: -8 },
+    bounds: {
+      min: { x: 40, y: 270, z: -8 },
+      max: { x: 41, y: 271, z: -7 }
+    },
+    message: `Applied ${blockId}`
   };
 }

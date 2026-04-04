@@ -10,7 +10,10 @@ async function main(): Promise<void> {
   const server = createMinecraftClawMcpServer({
     getPlayerState: () => bridgeClient.getPlayerState(),
     teleportPlayer: (request) => bridgeClient.teleportPlayer(request),
-    scanLocalSpace: (request) => bridgeClient.scanLocalSpace(request)
+    scanLocalSpace: (request) => bridgeClient.scanLocalSpace(request),
+    placeBlock: (request) => bridgeClient.placeBlock(request),
+    fillBox: (request) => bridgeClient.fillBox(request),
+    runCommand: (request) => bridgeClient.runCommand(request)
   });
   const transport = new StdioServerTransport();
 
