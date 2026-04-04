@@ -4,26 +4,26 @@
 Validate a practical MVP path for a Fabric 1.20.1 mod plus MCP server that lets an agent sense the Minecraft world and execute building tasks, starting with proving MCP connectivity first.
 
 ## Current Phase
-Phase 1
+Phase 3
 
 ## Phases
 ### Phase 1: Requirements & Discovery
 - [x] Understand user intent
 - [x] Identify constraints and requirements
-- [ ] Document findings in findings.md
-- **Status:** in_progress
+- [x] Document findings in findings.md
+- **Status:** complete
 
 ### Phase 2: Parallel Research
-- [ ] Investigate Fabric-side integration options
-- [ ] Find reusable bot/building/pathfinding references
-- [ ] Find current GitHub/Modrinth projects worth borrowing from
-- **Status:** pending
+- [x] Investigate Fabric-side integration options
+- [x] Find reusable bot/building/pathfinding references
+- [x] Find current GitHub/Modrinth projects worth borrowing from
+- **Status:** complete
 
 ### Phase 3: MVP Architecture
-- [ ] Define MCP-first architecture
-- [ ] Define first milestone scope
-- [ ] Record decision rationale
-- **Status:** pending
+- [x] Define MCP-first architecture
+- [x] Define first milestone scope
+- [x] Record decision rationale
+- **Status:** in_progress
 
 ### Phase 4: Bootstrap Plan
 - [ ] Outline project layout
@@ -47,6 +47,8 @@ Phase 1
 |----------|-----------|
 | Use a connectivity-first MVP | Proves the mod can expose world state and accept tool calls before investing in pathfinding and autonomous building |
 | Use parallel research agents | The Fabric integration path, reference bots, and reusable mods are largely independent research threads |
+| Use a Fabric mod plus external MCP server split | This isolates Minecraft internals from MCP protocol concerns and creates a testable seam |
+| Treat Carpet/WorldEdit/Litematica-family projects as reference layers, not a single dependency stack | No existing project cleanly solves the full goal end-to-end on Fabric 1.20.1 |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
