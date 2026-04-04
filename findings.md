@@ -24,6 +24,11 @@
 - Existing MCP-for-Minecraft servers such as `FundamentalLabs/minecraft-mcp` and `gerred/mcpmc` prove the MCP interaction model, but both are based on Mineflayer rather than Fabric internals
 - Fabric Carpet is the strongest server-side control reference, and Carpet TIS Addition is the strongest fake-player action semantics reference for later "agent as player" milestones
 - Lite2Edit and SchemPaste are promising references for converting schematics into server-side paste/build execution
+- The first implementation slice now exists as a monorepo scaffold with `mod/` and `mcp-server/`
+- The MCP server side is bootstrapped with Node/TypeScript, the official MCP SDK dependency, and a tested bridge configuration module
+- The Fabric side is bootstrapped with two smoke-test commands: `/mcclaw_ping` and `/mcclaw_player_state`
+- `mcp-server` tests and TypeScript build pass locally
+- `:mod:build` is currently blocked by the environment defaulting to Java 26; this stack needs Java 21 or 17
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -34,14 +39,21 @@
 | Treat WorldEdit and Litematica as blueprint/build references | They solve schematic representation and bulk placement better than hand-rolled building logic |
 | Use a localhost RPC bridge between mod and MCP server | This keeps MCP concerns out of the Fabric runtime and makes the boundary easier to test and replace |
 | Defer real-player camera and UI control to an optional later client companion | The server already exposes enough state to prove end-to-end sensing and action execution |
+| Use a monorepo with `mod/` and `mcp-server/` | It keeps the control plane and game integration in one repository while preserving a clean runtime boundary |
+| Use a repo-local npm cache and Gradle home | It avoids sandbox and permission issues with user-global caches during local verification |
 
 ## Issues Encountered
 | Issue | Resolution |
 |-------|------------|
 | Fresh workspace had no git history | Will initialize a local repo before committing planning artifacts |
+| `npm` could not write to the user's global cache | Switched npm operations to a repo-local `.npm-cache` |
+| Gradle wrapper files were initially copied to the wrong location | Moved them into `gradle/wrapper/` |
+| Gradle wrapper download timed out with the default 10s timeout | Increased wrapper `networkTimeout` to 120000 |
+| Fabric Gradle build fails on Java 26 | Must run Gradle under Java 21 or 17 |
 
 ## Resources
 - Workspace: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot
+- GitHub repo: https://github.com/glasses666/MinecraftClaw
 - Fabric networking docs: https://docs.fabricmc.net/develop/networking
 - Fabric command basics: https://docs.fabricmc.net/develop/commands/basics
 - ServerLifecycleEvents: https://maven.fabricmc.net/docs/fabric-api-0.92.1%2B1.20.1/net/fabricmc/fabric/api/event/lifecycle/v1/ServerLifecycleEvents.html
@@ -68,6 +80,7 @@
 - Carpet TIS Addition per-tick player actions: https://modrinth.com/mod/carpet-tis-addition/version/v1.70.0-mc1.20.1
 - Fundamental Labs Minecraft MCP: https://github.com/FundamentalLabs/minecraft-mcp
 - MCPMC: https://github.com/gerred/mcpmc
+- MCP SDK npm package: https://www.npmjs.com/package/@modelcontextprotocol/sdk
 
 ## Visual/Browser Findings
 - User screenshot shows a Fabric 1.20.1 setup baseline with LWJGL 3 3.3.1, Minecraft 1.20.1, Intermediary Mappings 1.20.1, and Fabric Loader 0.17.2

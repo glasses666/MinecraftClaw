@@ -1,0 +1,10 @@
+.DS_Store
+.gradle/
+.gradle-home/
+build/
+out/
+run/
+mod/build/
+mcp-server/dist/
+mcp-server/node_modules/
+.npm-cache/

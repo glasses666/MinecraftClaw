@@ -4,7 +4,7 @@
 Validate a practical MVP path for a Fabric 1.20.1 mod plus MCP server that lets an agent sense the Minecraft world and execute building tasks, starting with proving MCP connectivity first.
 
 ## Current Phase
-Phase 3
+Phase 4
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -23,13 +23,13 @@ Phase 3
 - [x] Define MCP-first architecture
 - [x] Define first milestone scope
 - [x] Record decision rationale
-- **Status:** in_progress
+- **Status:** complete
 
 ### Phase 4: Bootstrap Plan
-- [ ] Outline project layout
-- [ ] Define first implementation tasks
-- [ ] Identify verification checkpoints
-- **Status:** pending
+- [x] Outline project layout
+- [x] Define first implementation tasks
+- [x] Identify verification checkpoints
+- **Status:** in_progress
 
 ### Phase 5: Delivery
 - [ ] Summarize recommended direction
@@ -49,11 +49,15 @@ Phase 3
 | Use parallel research agents | The Fabric integration path, reference bots, and reusable mods are largely independent research threads |
 | Use a Fabric mod plus external MCP server split | This isolates Minecraft internals from MCP protocol concerns and creates a testable seam |
 | Treat Carpet/WorldEdit/Litematica-family projects as reference layers, not a single dependency stack | No existing project cleanly solves the full goal end-to-end on Fabric 1.20.1 |
+| Use Node/TypeScript for the external MCP server | The MCP SDK is mature there and the localhost bridge will be easier to iterate outside the mod JVM |
+| Start with command-based smoke tests in the Fabric mod | This validates the mod-side sensing path before adding the localhost bridge |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | Parent folder is not a git repository | 1 | Initialize a repo inside the new workspace before committing artifacts |
+| Gradle wrapper download timed out at 10 seconds | 1 | Increased `networkTimeout` to 120000 in `gradle-wrapper.properties` |
+| Fabric Gradle build fails under Java 26 with `Unsupported class file major version 70` | 1 | Need to run the build under Java 21 or 17 instead of the system default Java 26 |
 
 ## Notes
 - Update phase status as research converges

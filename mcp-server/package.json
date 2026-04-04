@@ -1,0 +1,19 @@
+{
+  "name": "@minecraftclaw/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/index.ts",
+    "test": "tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.5.2",
+    "tsx": "4.21.0",
+    "typescript": "6.0.2"
+  }
+}
