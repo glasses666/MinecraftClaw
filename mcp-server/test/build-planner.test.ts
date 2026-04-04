@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   COZY_CABIN_V1,
   RIDGE_LANTERN_LODGE_V1,
+  RIDGE_LANTERN_LODGE_V2,
   SKY_GAZEBO_V1,
   assessBlueprintPlacement,
   buildExecutionPlan,
@@ -70,6 +71,21 @@ test("findGroundedPlacement picks a supported flat shelf for the ridge lodge", (
   assert.equal(placement?.origin.y, 73);
   assert.ok((placement?.supportingColumnCount ?? 0) >= 54);
   assert.equal(placement?.assessment.isClear, true);
+});
+
+test("ridge lodge v2 keeps grounded placement while adding a richer execution plan", () => {
+  const placement = findGroundedPlacement(sampleRidgeShelfSpace(), RIDGE_LANTERN_LODGE_V2, {
+    minSupportRatio: 0.85,
+    maxSurfaceVariance: 1
+  });
+
+  assert.notEqual(placement, null);
+  assert.equal(placement?.assessment.isClear, true);
+
+  const plan = buildExecutionPlan(RIDGE_LANTERN_LODGE_V2, placement!.origin);
+  assert.ok(plan.length > 35);
+  assert.ok(plan.filter((step) => step.kind === "command").length >= 10);
+  assert.ok(plan.filter((step) => step.kind === "fill").length >= 12);
 });
 
 function sampleSkyPlatformSpace() {
