@@ -254,6 +254,41 @@ test("MinecraftClawBridgeClient.runCommand sends raw commands to the mod bridge"
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
 
+test("MinecraftClawBridgeClient.getInventory reads the current player inventory from the mod bridge", async () => {
+  const server = createServer((request, response) => {
+    if (request.method === "GET" && request.url === "/player/inventory") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(
+        JSON.stringify({
+          status: "ok",
+          inventory: sampleInventory()
+        })
+      );
+      return;
+    }
+
+    response.writeHead(404).end();
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address !== null && typeof address !== "string");
+
+  const client = new MinecraftClawBridgeClient({
+    host: "127.0.0.1",
+    port: (address as AddressInfo).port,
+    timeoutMs: 5_000
+  });
+
+  const inventory = await client.getInventory();
+
+  assert.equal(inventory.playerName, "GLAsserrrr");
+  assert.equal(inventory.selectedHotbarSlot, 2);
+  assert.equal(inventory.slots[0]?.itemId, "minecraft:stone");
+
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+});
+
 function sampleLocalSpace() {
   return {
     schemaVersion: 1,
@@ -333,5 +368,16 @@ function sampleActionResult(action: string, changedBlocks: number, blockId: stri
       max: { x: 40, y: 270, z: -8 }
     },
     message: `Applied ${blockId}`
+  };
+}
+
+function sampleInventory() {
+  return {
+    playerName: "GLAsserrrr",
+    selectedHotbarSlot: 2,
+    slots: [
+      { slot: 0, itemId: "minecraft:stone", count: 64, displayName: "Stone" },
+      { slot: 1, itemId: "minecraft:glass", count: 32, displayName: "Glass" }
+    ]
   };
 }

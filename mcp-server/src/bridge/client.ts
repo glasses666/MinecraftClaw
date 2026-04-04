@@ -21,6 +21,19 @@ export interface BridgePlayerState {
   pitch: number;
 }
 
+export interface InventorySlot {
+  slot: number;
+  itemId: string;
+  count: number;
+  displayName: string;
+}
+
+export interface InventorySnapshot {
+  playerName: string;
+  selectedHotbarSlot: number;
+  slots: InventorySlot[];
+}
+
 export interface TeleportRequest {
   x: number;
   y: number;
@@ -138,6 +151,12 @@ interface PlayerEnvelope {
   error?: string;
 }
 
+interface InventoryEnvelope {
+  status: string;
+  inventory?: InventorySnapshot;
+  error?: string;
+}
+
 interface SpaceEnvelope {
   status: string;
   space?: LocalSpaceSnapshot;
@@ -159,6 +178,12 @@ export class MinecraftClawBridgeClient {
 
   public async getPlayerState(): Promise<BridgePlayerState> {
     return this.requestPlayer("/player", {
+      method: "GET"
+    });
+  }
+
+  public async getInventory(): Promise<InventorySnapshot> {
+    return this.requestInventory("/player/inventory", {
       method: "GET"
     });
   }
@@ -256,5 +281,20 @@ export class MinecraftClawBridgeClient {
     }
 
     return payload.result;
+  }
+
+  private async requestInventory(path: string, init: RequestInit): Promise<InventorySnapshot> {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(this.config.timeoutMs)
+    });
+
+    const payload = (await response.json()) as InventoryEnvelope;
+
+    if (!response.ok || payload.status !== "ok" || payload.inventory === undefined) {
+      throw new Error(payload.error ?? `Bridge request failed with status ${response.status}`);
+    }
+
+    return payload.inventory;
   }
 }

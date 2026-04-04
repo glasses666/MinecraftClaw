@@ -3,6 +3,7 @@ package io.openclaw.minecraftclaw.bridge;
 import java.util.List;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
@@ -21,6 +22,11 @@ public final class MinecraftClawGameBridgeController implements MinecraftClawBri
 	@Override
 	public BridgePlayerSnapshot getPlayerState() {
 		return server.submit(() -> captureSnapshot(requirePlayer())).join();
+	}
+
+	@Override
+	public InventorySnapshot getInventory() {
+		return server.submit(() -> captureInventory(requirePlayer())).join();
 	}
 
 	@Override
@@ -136,6 +142,29 @@ public final class MinecraftClawGameBridgeController implements MinecraftClawBri
 			new BridgeExactPosition(player.getX(), player.getY(), player.getZ()),
 			player.getYaw(),
 			player.getPitch()
+		);
+	}
+
+	private static InventorySnapshot captureInventory(ServerPlayerEntity player) {
+		List<InventorySlot> slots = new java.util.ArrayList<>();
+		for (int slot = 0; slot < player.getInventory().size(); slot++) {
+			ItemStack stack = player.getInventory().getStack(slot);
+			if (stack.isEmpty()) {
+				continue;
+			}
+
+			slots.add(new InventorySlot(
+				slot,
+				Registries.ITEM.getId(stack.getItem()).toString(),
+				stack.getCount(),
+				stack.getName().getString()
+			));
+		}
+
+		return new InventorySnapshot(
+			player.getName().getString(),
+			player.getInventory().selectedSlot,
+			List.copyOf(slots)
 		);
 	}
 

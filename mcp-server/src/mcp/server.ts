@@ -26,6 +26,20 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
   );
 
   server.registerTool(
+    "get_inventory",
+    {
+      title: "Get Inventory",
+      description: "Read the current player's non-empty inventory slots from the local MinecraftClaw mod bridge.",
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async () => handlers.getInventory()
+  );
+
+  server.registerTool(
     "teleport_player",
     {
       title: "Teleport Player",
@@ -181,6 +195,80 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
       }
     },
     async ({ command }) => handlers.runCommand({ command })
+  );
+
+  server.registerTool(
+    "summon_entity",
+    {
+      title: "Summon Entity",
+      description: "Summon an entity at absolute block coordinates.",
+      inputSchema: {
+        entityId: z.string().min(3).describe("Minecraft entity id such as minecraft:cow."),
+        x: z.number().int().describe("Absolute block X coordinate."),
+        y: z.number().int().describe("Absolute block Y coordinate."),
+        z: z.number().int().describe("Absolute block Z coordinate.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ entityId, x, y, z }) => handlers.summonEntity({ entityId, x, y, z })
+  );
+
+  server.registerTool(
+    "set_time",
+    {
+      title: "Set Time",
+      description: "Set world time using a preset or absolute time value.",
+      inputSchema: {
+        time: z.union([z.string(), z.number().int().nonnegative()]).describe("One of day, night, noon, midnight, or a non-negative tick value.")
+      },
+      annotations: {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ time }) => handlers.setTime({ time })
+  );
+
+  server.registerTool(
+    "set_weather",
+    {
+      title: "Set Weather",
+      description: "Set weather and an optional duration in seconds.",
+      inputSchema: {
+        weather: z.enum(["clear", "rain", "thunder"]).describe("Weather state."),
+        durationSeconds: z.number().int().positive().optional().describe("Optional weather duration in seconds.")
+      },
+      annotations: {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ weather, durationSeconds }) => handlers.setWeather({ weather, durationSeconds })
+  );
+
+  server.registerTool(
+    "give_item",
+    {
+      title: "Give Item",
+      description: "Give an item stack to the current player or a named target.",
+      inputSchema: {
+        itemId: z.string().min(3).describe("Minecraft item id such as minecraft:diamond."),
+        count: z.number().int().positive().optional().describe("Stack count to give. Default: 1."),
+        target: z.string().min(1).optional().describe("Optional target selector/name. Defaults to the current player.")
+      },
+      annotations: {
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ itemId, count, target }) => handlers.giveItem({ itemId, count, target })
   );
 
   return server;

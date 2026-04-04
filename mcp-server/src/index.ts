@@ -9,6 +9,7 @@ async function main(): Promise<void> {
   const bridgeClient = new MinecraftClawBridgeClient(config);
   const server = createMinecraftClawMcpServer({
     getPlayerState: () => bridgeClient.getPlayerState(),
+    getInventory: () => bridgeClient.getInventory(),
     teleportPlayer: (request) => bridgeClient.teleportPlayer(request),
     scanLocalSpace: (request) => bridgeClient.scanLocalSpace(request),
     placeBlock: (request) => bridgeClient.placeBlock(request),

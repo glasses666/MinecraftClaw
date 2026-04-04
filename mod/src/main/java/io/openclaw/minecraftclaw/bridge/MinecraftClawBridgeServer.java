@@ -33,6 +33,7 @@ public final class MinecraftClawBridgeServer {
 		});
 		server.setExecutor(executor);
 		server.createContext("/player", this::handlePlayerState);
+		server.createContext("/player/inventory", this::handlePlayerInventory);
 		server.createContext("/player/teleport", this::handleTeleportPlayer);
 		server.createContext("/space/local", this::handleLocalSpace);
 		server.createContext("/world/block/place", this::handlePlaceBlock);
@@ -65,6 +66,10 @@ public final class MinecraftClawBridgeServer {
 
 	private void handlePlayerState(HttpExchange exchange) throws IOException {
 		handle(exchange, "GET", () -> controller.getPlayerState());
+	}
+
+	private void handlePlayerInventory(HttpExchange exchange) throws IOException {
+		handleInventory(exchange, "GET", () -> controller.getInventory());
 	}
 
 	private void handleTeleportPlayer(HttpExchange exchange) throws IOException {
@@ -156,6 +161,24 @@ public final class MinecraftClawBridgeServer {
 		}
 	}
 
+	private void handleInventory(HttpExchange exchange, String expectedMethod, InventoryHandler handler) throws IOException {
+		try (exchange) {
+			if (!expectedMethod.equals(exchange.getRequestMethod())) {
+				writeJsonResponse(exchange, 405, MinecraftClawBridgeJson.errorResponse("Method not allowed."));
+				return;
+			}
+
+			InventorySnapshot inventory = handler.handle();
+			writeJsonResponse(exchange, 200, MinecraftClawBridgeJson.inventoryResponse(inventory));
+		} catch (IllegalArgumentException exception) {
+			writeJsonResponse(exchange, 400, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		} catch (IllegalStateException exception) {
+			writeJsonResponse(exchange, 503, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		} catch (Exception exception) {
+			writeJsonResponse(exchange, 500, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		}
+	}
+
 	private static void writeJsonResponse(HttpExchange exchange, int statusCode, String body) throws IOException {
 		byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
 		exchange.getResponseHeaders().set("content-type", "application/json; charset=utf-8");
@@ -176,5 +199,10 @@ public final class MinecraftClawBridgeServer {
 	@FunctionalInterface
 	private interface ActionHandler {
 		BridgeActionResult handle() throws Exception;
+	}
+
+	@FunctionalInterface
+	private interface InventoryHandler {
+		InventorySnapshot handle() throws Exception;
 	}
 }

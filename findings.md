@@ -55,6 +55,11 @@
 - The mod-side bridge only needed three new primitives: place block, fill box, and execute command; `break_block` and `clear_box` are MCP-side aliases to air placement/fill
 - `run_command` acts as the unrestricted escape hatch, so typed block-edit tools can stay stable and ergonomic instead of trying to model every Minecraft command variant
 - The Prism instance that appears to be reserved for Codex work is `/Users/dracoglasser/Library/Application Support/PrismLauncher/instances/乌托邦探险之旅3.5fix（codex）`
+- The next admin-control slice is split by runtime boundary: `get_inventory` needs a new mod bridge endpoint, but `summon_entity`, `set_time`, `set_weather`, and `give_item` can be typed MCP wrappers over the existing command executor
+- The MCP surface now includes `get_inventory`, `summon_entity`, `set_time`, `set_weather`, and `give_item`
+- Inventory export is intentionally narrow: only non-empty slots are surfaced, with stable slot index, item id, count, custom-name flag, and damage/max-damage metadata
+- When debugging live MCP calls, the SDK returned `isError=true` with text `Failed to read player state: fetch failed`; the real issue was bridge unavailability, not a malformed success payload
+- A missing listener on `127.0.0.1:47127` is enough to explain the live failure; the selected Prism instance had already exited by the time the new wrappers were exercised
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -75,6 +80,8 @@
 | Keep semantic space interpretation in TypeScript for now | The MCP layer can evolve heuristics quickly without changing the Fabric bridge contract |
 | Separate region classification from buildability classification | Regions should describe the local geometry itself, while buildability can be stricter because of nearby POIs and social/functional constraints |
 | Implement the first “full power” slice as typed world actions plus `run_command` | This gives near-admin-complete control without making routine placement/fill flows depend on raw chat commands |
+| Keep common high-impact actions typed even when `run_command` could express them | Typed tools give the agent a narrower, more stable API surface and reduce prompt overhead |
+| Return only non-empty inventory slots from the bridge | Empty-slot spam adds no planning value and wastes payload budget |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -89,6 +96,8 @@
 | Live `/space/local` initially returned `404` | The running Prism instance was still on the older installed jar; copying the rebuilt jar and relaunching fixed it |
 | `tsc` failed even though `tsx --test` passed | The test needed an explicit type narrowing for `structuredContent.model` before the production build would compile |
 | New code cannot affect the already running MC process without restart | The updated jar can be staged into the selected instance, but Fabric will only load it on the next launch |
+| Debugging the new typed wrappers initially looked like an SDK shape issue | Inspecting the raw `callTool` result showed the real problem was an MCP error result caused by a dead bridge listener |
+| The selected Prism instance was no longer running during live wrapper verification | `lsof` showed nothing listening on `127.0.0.1:47127`, and `latest.log` ended with a normal save-and-exit sequence |
 
 ## Resources
 - Workspace: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot
@@ -126,6 +135,7 @@
 - New live tool: `scan_local_space`
 - New semantic tool: `analyze_local_space`
 - New admin tools: `place_block`, `break_block`, `fill_box`, `clear_box`, `run_command`
+- New extended admin tools: `get_inventory`, `summon_entity`, `set_time`, `set_weather`, `give_item`
 
 ## Visual/Browser Findings
 - User screenshot shows a Fabric 1.20.1 setup baseline with LWJGL 3 3.3.1, Minecraft 1.20.1, Intermediary Mappings 1.20.1, and Fabric Loader 0.17.2

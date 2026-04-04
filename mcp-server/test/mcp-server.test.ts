@@ -16,6 +16,7 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
       yaw: -94.5,
       pitch: -4.5
     }),
+    getInventory: async () => sampleInventory(),
     teleportPlayer: async ({ x, y, z }) => ({
       name: "GLAsserrrr",
       dimension: "minecraft:overworld",
@@ -54,10 +55,15 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
     "break_block",
     "clear_box",
     "fill_box",
+    "get_inventory",
     "get_player_state",
+    "give_item",
     "place_block",
     "run_command",
     "scan_local_space",
+    "set_time",
+    "set_weather",
+    "summon_entity",
     "teleport_player"
   ]);
 
@@ -92,6 +98,14 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
 
   assert.equal(placement.isError, false);
   assert.match(readFirstText(placement.content), /gold_block/);
+
+  const inventory = await client.callTool({
+    name: "get_inventory",
+    arguments: {}
+  });
+
+  assert.equal(inventory.isError, false);
+  assert.match(readFirstText(inventory.content), /filled slots/);
 
   await Promise.all([client.close(), server.close()]);
 });
@@ -169,5 +183,16 @@ function sampleActionResult(action: string, changedBlocks: number, blockId: stri
       max: { x: 41, y: 271, z: -7 }
     },
     message: `Applied ${blockId}`
+  };
+}
+
+function sampleInventory() {
+  return {
+    playerName: "GLAsserrrr",
+    selectedHotbarSlot: 2,
+    slots: [
+      { slot: 0, itemId: "minecraft:stone", count: 64, displayName: "Stone" },
+      { slot: 1, itemId: "minecraft:glass", count: 32, displayName: "Glass" }
+    ]
   };
 }

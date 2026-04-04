@@ -43,6 +43,24 @@ class MinecraftClawBridgeServerTest {
 	}
 
 	@Test
+	void inventoryEndpointReturnsCurrentPlayerInventory() throws IOException, InterruptedException {
+		StubController controller = new StubController(snapshot(26, 269, 13));
+		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);
+		server.start();
+
+		HttpResponse<String> response = httpClient.send(
+			HttpRequest.newBuilder(server.uri("/player/inventory")).GET().build(),
+			HttpResponse.BodyHandlers.ofString()
+		);
+
+		assertEquals(200, response.statusCode());
+		JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+		assertEquals("ok", json.get("status").getAsString());
+		assertEquals("GLAsserrrr", json.getAsJsonObject("inventory").get("playerName").getAsString());
+		assertEquals(2, json.getAsJsonObject("inventory").get("selectedHotbarSlot").getAsInt());
+	}
+
+	@Test
 	void teleportEndpointPassesAbsoluteCoordinatesToController() throws IOException, InterruptedException {
 		StubController controller = new StubController(snapshot(26, 269, 13));
 		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);
@@ -184,6 +202,18 @@ class MinecraftClawBridgeServerTest {
 		@Override
 		public BridgePlayerSnapshot getPlayerState() {
 			return playerState;
+		}
+
+		@Override
+		public InventorySnapshot getInventory() {
+			return new InventorySnapshot(
+				playerState.name(),
+				2,
+				java.util.List.of(
+					new InventorySlot(0, "minecraft:stone", 64, "Stone"),
+					new InventorySlot(1, "minecraft:glass", 32, "Glass")
+				)
+			);
 		}
 
 		@Override

@@ -189,6 +189,36 @@
   - mcp-server/test/mcp-server.test.ts (updated)
   - mcp-server/test/mcp-tools.test.ts (updated)
 
+### Phase 11: Extended Admin Controls
+- **Status:** complete
+- **Started:** 2026-04-04 23:53 Asia/Shanghai
+- Actions taken:
+  - Chose a split implementation: inventory gets a dedicated bridge endpoint, while summon/time/weather/give stay as typed MCP wrappers over `run_command`
+  - Wrote failing tests first for the new inventory endpoint, MCP bridge client method, tool handlers, and MCP tool registration
+  - Implemented mod-side inventory snapshots that expose only non-empty slots with stable item/count metadata
+  - Implemented MCP-side `get_inventory`, `summon_entity`, `set_time`, `set_weather`, and `give_item`
+  - Re-ran the full MCP server test suite, TypeScript build, and both `:mod:test` and `:mod:build` under Prism’s Java 17 runtime
+  - Debugged live MCP response shape and confirmed later `fetch failed` results came from the selected Prism instance having already exited, not from the new code
+- Files created/modified:
+  - task_plan.md (updated)
+  - findings.md (updated)
+  - progress.md (updated)
+  - README.md (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/InventorySlot.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/InventorySnapshot.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeController.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeJson.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeServer.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawGameBridgeController.java (updated)
+  - mod/src/test/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeServerTest.java (updated)
+  - mcp-server/src/bridge/client.ts (updated)
+  - mcp-server/src/index.ts (updated)
+  - mcp-server/src/mcp/server.ts (updated)
+  - mcp-server/src/mcp/tools.ts (updated)
+  - mcp-server/test/bridge-client.test.ts (updated)
+  - mcp-server/test/mcp-server.test.ts (updated)
+  - mcp-server/test/mcp-tools.test.ts (updated)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -218,6 +248,12 @@
 | Admin action tests (green) | `cd mcp-server && npm test` | Full MCP suite passes with world actions | 20/20 passing | ✓ |
 | MCP action build | `cd mcp-server && npm run build` | TypeScript compile succeeds with new action tools | Succeeds | ✓ |
 | Mod action tests | `./gradlew :mod:test --no-daemon` | Java bridge tests pass with new endpoints | Succeeds | ✓ |
+| Extended admin tests (red) | `npm test` and `:mod:test` before implementation | New inventory and typed wrapper tests fail for missing methods/tools | Failed on missing `getInventory`, `/player/inventory`, and new MCP tool registrations | ✓ |
+| Extended admin tests (green) | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm test` | Full MCP suite passes with extended controls | 25/25 passing | ✓ |
+| Extended admin build | `cd mcp-server && NPM_CONFIG_CACHE=$PWD/.npm-cache npm run build` | TypeScript compile succeeds with new tools | Succeeds | ✓ |
+| Extended mod tests | `JAVA_HOME=\"$HOME/Library/Application Support/PrismLauncher/java/java-runtime-gamma\" GRADLE_USER_HOME=$PWD/.gradle-home ./gradlew :mod:test --no-daemon` | Java bridge tests pass with inventory endpoint | Succeeds | ✓ |
+| Extended mod build | `JAVA_HOME=\"$HOME/Library/Application Support/PrismLauncher/java/java-runtime-gamma\" GRADLE_USER_HOME=$PWD/.gradle-home ./gradlew :mod:build --no-daemon` | Mod compiles and remaps jar with inventory support | Succeeds | ✓ |
+| Live MCP response inspection | `client.callTool({ name: \"get_player_state\" })` against current stdio server | Return a success payload or a diagnosable error shape | Returned `isError=true` with `Failed to read player state: fetch failed`, which correctly exposed bridge unavailability | ✓ |
 | Mod action build | `./gradlew :mod:build --no-daemon` | Remapped jar builds with new action surface | Succeeds | ✓ |
 
 ## Error Log

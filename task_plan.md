@@ -4,7 +4,7 @@
 Extend the verified Fabric 1.20.1 + MCP bridge so the agent can reconstruct and semantically interpret the player's nearby 3D space, not just read player position and teleport.
 
 ## Current Phase
-Phase 11
+Phase 12
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -73,6 +73,14 @@ Phase 11
 - [x] Add typed world-edit and command tools to the bridge and MCP server
 - [x] Build and test the updated action surface
 - [x] Stage the new jar into the selected Prism instance without touching the running process
+- [x] Commit and push the milestone
+- **Status:** complete
+
+### Phase 12: Extended Admin Controls
+- [x] Add a dedicated bridge endpoint for non-empty player inventory reads
+- [x] Add typed wrappers for summon, time, weather, and give-item actions
+- [x] Build and test the extended control surface
+- [x] Stage the rebuilt jar into the selected Prism instance without touching the running process
 - [ ] Commit and push the milestone
 - **Status:** in_progress
 
@@ -82,6 +90,7 @@ Phase 11
 3. How should the scan be parameterized so resolution can increase without exploding payload size?
 4. Which semantic signals are stable enough to expose before doing larger-area world stitching?
 5. Which small set of world actions gives near-full creative/admin control without turning the MCP layer into raw command soup?
+6. Which higher-level admin actions should stay typed even though `run_command` can already express them?
 
 ## Decisions Made
 | Decision | Rationale |
@@ -98,6 +107,8 @@ Phase 11
 | Prefer compressed 3D columns plus walkable surfaces over raw block dumps | This preserves spatial structure while keeping the payload small enough for agent use |
 | Add semantic interpretation in the MCP server before changing the mod scan format | This preserves the stable bridge contract and lets heuristics evolve faster than JVM-side world access code |
 | Expose admin control as a hybrid of typed actions plus `run_command` | Typed tools stay stable for agent use while raw commands remain the unrestricted escape hatch |
+| Expose inventory as a dedicated bridge read instead of scraping command output | Inventory is structured state, and the bridge can return it without chat parsing or side effects |
+| Implement summon/time/weather/give as typed MCP wrappers over `run_command` | These actions work immediately against the existing bridge command executor while keeping the tool surface ergonomic |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -109,6 +120,8 @@ Phase 11
 | `JoinWorldOnLaunch` was set but not honored | 1 | The instance had `OverrideMiscellaneous=false`; live bridge tests proceeded after the world was entered manually/through the running session |
 | `tsx --test` passed but `tsc` failed on `structuredContent` typing | 1 | Narrowed the test-side type explicitly before rebuilding the MCP server |
 | The new admin action code cannot hot-load into the already running game instance | 1 | Build and stage the new jar only; do not restart or kill the user’s current process |
+| Live MCP debugging initially failed with `structuredContent.player` undefined | 1 | Inspected the raw SDK result and confirmed the real issue was an error result shape rather than a success payload |
+| Live MCP calls later failed with `fetch failed` | 1 | Confirmed the selected Prism instance had already exited, so nothing was listening on `127.0.0.1:47127` |
 
 ## Notes
 - Update phase status as research converges

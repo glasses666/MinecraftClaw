@@ -5,6 +5,7 @@ import type {
   BridgePlayerState,
   CommandRequest,
   FillBoxRequest,
+  InventorySnapshot,
   LocalSpaceSnapshot,
   PlaceBlockRequest,
   SpaceScanRequest,
@@ -14,6 +15,7 @@ import { buildSpaceModel } from "./space-model.js";
 
 export interface ToolDependencies {
   getPlayerState(): Promise<BridgePlayerState>;
+  getInventory(): Promise<InventorySnapshot>;
   teleportPlayer(request: TeleportRequest): Promise<BridgePlayerState>;
   scanLocalSpace(request: SpaceScanRequest): Promise<LocalSpaceSnapshot>;
   placeBlock(request: PlaceBlockRequest): Promise<BridgeActionResult>;
@@ -23,6 +25,7 @@ export interface ToolDependencies {
 
 export interface ToolHandlers {
   getPlayerState(): Promise<CallToolResult>;
+  getInventory(): Promise<CallToolResult>;
   teleportPlayer(request: TeleportRequest): Promise<CallToolResult>;
   scanLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
   analyzeLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
@@ -31,6 +34,32 @@ export interface ToolHandlers {
   fillBox(request: FillBoxRequest): Promise<CallToolResult>;
   clearBox(request: Omit<FillBoxRequest, "blockId">): Promise<CallToolResult>;
   runCommand(request: CommandRequest): Promise<CallToolResult>;
+  summonEntity(request: SummonEntityRequest): Promise<CallToolResult>;
+  setTime(request: SetTimeRequest): Promise<CallToolResult>;
+  setWeather(request: SetWeatherRequest): Promise<CallToolResult>;
+  giveItem(request: GiveItemRequest): Promise<CallToolResult>;
+}
+
+interface SummonEntityRequest {
+  entityId: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+interface SetTimeRequest {
+  time: string | number;
+}
+
+interface SetWeatherRequest {
+  weather: "clear" | "rain" | "thunder";
+  durationSeconds?: number;
+}
+
+interface GiveItemRequest {
+  itemId: string;
+  count?: number;
+  target?: string;
 }
 
 export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers {
@@ -41,6 +70,26 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
         return successResult(player, `Current player state: ${describePlayerState(player)}`);
       } catch (error) {
         return errorResult(`Failed to read player state: ${describeError(error)}`);
+      }
+    },
+
+    async getInventory() {
+      try {
+        const inventory = await dependencies.getInventory();
+        return {
+          content: [
+            {
+              type: "text",
+              text: describeInventory(inventory)
+            }
+          ],
+          structuredContent: {
+            inventory
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to read inventory: ${describeError(error)}`);
       }
     },
 
@@ -187,6 +236,90 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
       } catch (error) {
         return errorResult(`Failed to run command: ${describeError(error)}`);
       }
+    },
+
+    async summonEntity(request) {
+      const normalized = normalizeSummonEntityRequest(request);
+      if (normalized instanceof Error) {
+        return errorResult(normalized.message);
+      }
+
+      try {
+        const result = await dependencies.runCommand({
+          command: `summon ${normalized.entityId} ${normalized.x} ${normalized.y} ${normalized.z}`
+        });
+        return successActionResult({
+          ...result,
+          action: "summon_entity",
+          message: `Summoned ${normalized.entityId} at ${normalized.x},${normalized.y},${normalized.z}`
+        });
+      } catch (error) {
+        return errorResult(`Failed to summon entity: ${describeError(error)}`);
+      }
+    },
+
+    async setTime(request) {
+      const normalized = normalizeTimeRequest(request);
+      if (normalized instanceof Error) {
+        return errorResult(normalized.message);
+      }
+
+      try {
+        const result = await dependencies.runCommand({
+          command: `time set ${normalized.time}`
+        });
+        return successActionResult({
+          ...result,
+          action: "set_time",
+          message: `Set time to ${normalized.time}`
+        });
+      } catch (error) {
+        return errorResult(`Failed to set time: ${describeError(error)}`);
+      }
+    },
+
+    async setWeather(request) {
+      const normalized = normalizeWeatherRequest(request);
+      if (normalized instanceof Error) {
+        return errorResult(normalized.message);
+      }
+
+      const suffix = normalized.durationSeconds === undefined ? "" : ` ${normalized.durationSeconds}`;
+
+      try {
+        const result = await dependencies.runCommand({
+          command: `weather ${normalized.weather}${suffix}`
+        });
+        return successActionResult({
+          ...result,
+          action: "set_weather",
+          message: `Set weather to ${normalized.weather}${normalized.durationSeconds === undefined ? "" : ` for ${normalized.durationSeconds}s`}`
+        });
+      } catch (error) {
+        return errorResult(`Failed to set weather: ${describeError(error)}`);
+      }
+    },
+
+    async giveItem(request) {
+      const normalized = normalizeGiveItemRequest(request);
+      if (normalized instanceof Error) {
+        return errorResult(normalized.message);
+      }
+
+      try {
+        const player = await dependencies.getPlayerState();
+        const target = normalized.target ?? player.name;
+        const result = await dependencies.runCommand({
+          command: `give ${target} ${normalized.itemId} ${normalized.count}`
+        });
+        return successActionResult({
+          ...result,
+          action: "give_item",
+          message: `Gave ${normalized.count} ${normalized.itemId} to ${target}`
+        });
+      } catch (error) {
+        return errorResult(`Failed to give item: ${describeError(error)}`);
+      }
     }
   };
 }
@@ -263,6 +396,10 @@ function describeSpaceModel(model: ReturnType<typeof buildSpaceModel>): string {
 
 function describeActionResult(result: BridgeActionResult): string {
   return result.message;
+}
+
+function describeInventory(inventory: InventorySnapshot): string {
+  return `Inventory for ${inventory.playerName}: ${inventory.slots.length} filled slots, selected hotbar slot ${inventory.selectedHotbarSlot}.`;
 }
 
 function describeError(error: unknown): string {
@@ -349,6 +486,81 @@ function normalizeCommandRequest(request: CommandRequest): CommandRequest | Erro
   return { command };
 }
 
+function normalizeSummonEntityRequest(request: SummonEntityRequest): SummonEntityRequest | Error {
+  if (!Number.isInteger(request.x) || !Number.isInteger(request.y) || !Number.isInteger(request.z)) {
+    return new Error("Summon coordinates must be integers.");
+  }
+
+  const entityId = normalizeNamespacedIdentifier(request.entityId, "entityId");
+  if (entityId instanceof Error) {
+    return entityId;
+  }
+
+  return {
+    entityId,
+    x: request.x,
+    y: request.y,
+    z: request.z
+  };
+}
+
+function normalizeTimeRequest(request: SetTimeRequest): { time: string | number } | Error {
+  if (typeof request.time === "number") {
+    if (!Number.isInteger(request.time) || request.time < 0) {
+      return new Error("time must be a non-negative integer or a valid named preset.");
+    }
+    return { time: request.time };
+  }
+
+  if (typeof request.time === "string") {
+    const time = request.time.trim();
+    if (["day", "night", "noon", "midnight"].includes(time)) {
+      return { time };
+    }
+  }
+
+  return new Error("time must be one of day/night/noon/midnight or a non-negative integer.");
+}
+
+function normalizeWeatherRequest(request: SetWeatherRequest): SetWeatherRequest | Error {
+  if (!["clear", "rain", "thunder"].includes(request.weather)) {
+    return new Error("weather must be clear, rain, or thunder.");
+  }
+
+  if (request.durationSeconds !== undefined) {
+    if (!Number.isInteger(request.durationSeconds) || request.durationSeconds < 1 || request.durationSeconds > 1_000_000) {
+      return new Error("durationSeconds must be an integer between 1 and 1000000.");
+    }
+  }
+
+  return request;
+}
+
+function normalizeGiveItemRequest(request: GiveItemRequest): Required<Pick<GiveItemRequest, "itemId" | "count">> & Pick<GiveItemRequest, "target"> | Error {
+  const itemId = normalizeNamespacedIdentifier(request.itemId, "itemId");
+  if (itemId instanceof Error) {
+    return itemId;
+  }
+
+  const count = request.count ?? 1;
+  if (!Number.isInteger(count) || count < 1 || count > 6400) {
+    return new Error("count must be an integer between 1 and 6400.");
+  }
+
+  if (request.target !== undefined) {
+    const target = request.target.trim();
+    if (target.length === 0 || /\s/.test(target)) {
+      return new Error("target must be a non-empty single token.");
+    }
+  }
+
+  return {
+    itemId,
+    count,
+    target: request.target
+  };
+}
+
 function normalizeBoundedInteger(
   value: number | undefined,
   fallback: number,
@@ -382,11 +594,7 @@ function normalizeBlockCoordinates(
 }
 
 function normalizeBlockId(blockId: string): string | Error {
-  if (typeof blockId !== "string" || !/^[a-z0-9_.-]+:[a-z0-9_./-]+$/.test(blockId)) {
-    return new Error("blockId must be a valid Minecraft namespaced identifier.");
-  }
-
-  return blockId;
+  return normalizeNamespacedIdentifier(blockId, "blockId");
 }
 
 function aliasActionResult(result: BridgeActionResult, action: string, prefix: string): BridgeActionResult {
@@ -399,4 +607,12 @@ function aliasActionResult(result: BridgeActionResult, action: string, prefix: s
     action,
     message: `${prefix} ${subject}. Changed blocks: ${result.changedBlocks}.`
   };
+}
+
+function normalizeNamespacedIdentifier(value: string, label: string): string | Error {
+  if (typeof value !== "string" || !/^[a-z0-9_.-]+:[a-z0-9_./-]+$/.test(value)) {
+    return new Error(`${label} must be a valid Minecraft namespaced identifier.`);
+  }
+
+  return value;
 }

@@ -102,6 +102,13 @@ final class MinecraftClawBridgeJson {
 		));
 	}
 
+	static String inventoryResponse(InventorySnapshot inventory) {
+		return GSON.toJson(Map.of(
+			"status", "ok",
+			"inventory", inventory
+		));
+	}
+
 	static String spaceResponse(LocalSpaceSnapshot space) {
 		return GSON.toJson(Map.of(
 			"status", "ok",

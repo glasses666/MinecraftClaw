@@ -73,6 +73,15 @@ The current milestone proves end-to-end local scene understanding:
 3. the MCP server can lift that scan into regions, structures, and buildability hints
 4. a caller can verify the semantic model against the live game scene
 
+`M3 - Extended Admin Controls`
+
+The next control slice extends the admin surface with typed wrappers for common high-permission actions and a dedicated inventory read path:
+
+1. the Fabric bridge exposes non-empty inventory slots through `/player/inventory`
+2. the MCP server exposes typed wrappers for summon, time, weather, and item-give actions
+3. callers can keep using typed tools for common actions instead of routing everything through raw commands
+4. `get_inventory` depends on the running game instance having the updated mod jar loaded
+
 ## Current MCP Tools
 
 - `get_player_state`
@@ -84,3 +93,8 @@ The current milestone proves end-to-end local scene understanding:
 - `fill_box`
 - `clear_box`
 - `run_command`
+- `get_inventory`
+- `summon_entity`
+- `set_time`
+- `set_weather`
+- `give_item`
