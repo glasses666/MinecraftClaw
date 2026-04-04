@@ -61,6 +61,7 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
     "give_item",
     "place_block",
     "plan_build",
+    "project_local_space",
     "run_command",
     "scan_local_space",
     "set_time",
@@ -92,6 +93,14 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
 
   assert.equal(analysis.isError, false);
   assert.match(readFirstText(analysis.content), /scene/i);
+
+  const projection = await client.callTool({
+    name: "project_local_space",
+    arguments: { radius: 4, down: 4, up: 6 }
+  });
+
+  assert.equal(projection.isError, false);
+  assert.match(readFirstText(projection.content), /projection/i);
 
   const placement = await client.callTool({
     name: "place_block",

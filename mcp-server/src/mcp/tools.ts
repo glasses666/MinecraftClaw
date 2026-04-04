@@ -18,6 +18,7 @@ import {
   type BlueprintPlacementMode,
   type BuildPlan
 } from "../builder/planner.js";
+import { projectLocalSpace, type ProjectionBounds } from "./space-projection.js";
 import { buildSpaceModel } from "./space-model.js";
 
 export interface ToolDependencies {
@@ -36,6 +37,7 @@ export interface ToolHandlers {
   teleportPlayer(request: TeleportRequest): Promise<CallToolResult>;
   scanLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
   analyzeLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
+  projectLocalSpace(request: ProjectLocalSpaceRequest): Promise<CallToolResult>;
   planBuild(request: PlanBuildRequest): Promise<CallToolResult>;
   buildStructure(request: BuildStructureRequest): Promise<CallToolResult>;
   placeBlock(request: PlaceBlockRequest): Promise<CallToolResult>;
@@ -81,6 +83,15 @@ interface PlanBuildRequest extends SpaceScanRequest {
 
 interface BuildStructureRequest extends PlanBuildRequest {
   allowOverlap?: boolean;
+}
+
+interface ProjectLocalSpaceRequest extends SpaceScanRequest {
+  x1?: number;
+  y1?: number;
+  z1?: number;
+  x2?: number;
+  y2?: number;
+  z2?: number;
 }
 
 export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers {
@@ -180,6 +191,32 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
         };
       } catch (error) {
         return errorResult(`Failed to analyze local space: ${describeError(error)}`);
+      }
+    },
+
+    async projectLocalSpace(request) {
+      const normalizedRequest = normalizeProjectLocalSpaceRequest(request);
+      if (normalizedRequest instanceof Error) {
+        return errorResult(normalizedRequest.message);
+      }
+
+      try {
+        const space = await dependencies.scanLocalSpace(normalizedRequest.scan);
+        const projection = projectLocalSpace(space, normalizedRequest.focusBounds);
+        return {
+          content: [
+            {
+              type: "text",
+              text: describeProjection(projection)
+            }
+          ],
+          structuredContent: {
+            projection
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to project local space: ${describeError(error)}`);
       }
     },
 
@@ -528,6 +565,11 @@ function describeBuildPlan(plan: BuildPlan): string {
     `support=${plan.supportingColumnCount}, supportRatio=${plan.supportRatio ?? "n/a"}, ${overlapSummary}.`;
 }
 
+function describeProjection(projection: ReturnType<typeof projectLocalSpace>): string {
+  return `Built projection for ${projection.summary.width}x${projection.summary.depth}x${projection.summary.height} ` +
+    `occupied volume with ${projection.summary.occupiedColumns} occupied columns and ${projection.summary.occupiedCells} occupied cells.`;
+}
+
 function describeActionResult(result: BridgeActionResult): string {
   return result.message;
 }
@@ -545,22 +587,60 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 function normalizeScanRequest(request: SpaceScanRequest): SpaceScanRequest | Error {
-  const radius = normalizeBoundedInteger(request.radius, 8, 1, 12, "radius");
+  const radius = normalizeBoundedInteger(request.radius, 8, 1, 20, "radius");
   if (radius instanceof Error) {
     return radius;
   }
 
-  const down = normalizeBoundedInteger(request.down, 8, 1, 16, "down");
+  const down = normalizeBoundedInteger(request.down, 8, 1, 24, "down");
   if (down instanceof Error) {
     return down;
   }
 
-  const up = normalizeBoundedInteger(request.up, 12, 1, 16, "up");
+  const up = normalizeBoundedInteger(request.up, 12, 1, 24, "up");
   if (up instanceof Error) {
     return up;
   }
 
   return { radius, down, up };
+}
+
+function normalizeProjectLocalSpaceRequest(
+  request: ProjectLocalSpaceRequest
+): {
+  scan: SpaceScanRequest;
+  focusBounds?: ProjectionBounds;
+} | Error {
+  const scan = normalizeScanRequest(request);
+  if (scan instanceof Error) {
+    return scan;
+  }
+
+  const bounds = [request.x1, request.y1, request.z1, request.x2, request.y2, request.z2];
+  const hasAnyBounds = bounds.some((value) => value !== undefined);
+  if (!hasAnyBounds) {
+    return { scan };
+  }
+
+  if (!bounds.every((value) => Number.isInteger(value))) {
+    return new Error("Projection bounds must be integers when provided.");
+  }
+
+  return {
+    scan,
+    focusBounds: {
+      min: {
+        x: Math.min(request.x1!, request.x2!),
+        y: Math.min(request.y1!, request.y2!),
+        z: Math.min(request.z1!, request.z2!)
+      },
+      max: {
+        x: Math.max(request.x1!, request.x2!),
+        y: Math.max(request.y1!, request.y2!),
+        z: Math.max(request.z1!, request.z2!)
+      }
+    }
+  };
 }
 
 function normalizePlanBuildRequest(

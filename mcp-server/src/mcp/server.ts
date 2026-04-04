@@ -64,9 +64,9 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
       title: "Scan Local Space",
       description: "Scan the player's nearby 3D space as occupied vertical runs, walkable surfaces, and nearby POIs.",
       inputSchema: {
-        radius: z.number().int().min(1).max(12).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
-        down: z.number().int().min(1).max(16).optional().describe("How many blocks below the player to include. Default: 8."),
-        up: z.number().int().min(1).max(16).optional().describe("How many blocks above the player to include. Default: 12.")
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12.")
       },
       annotations: {
         readOnlyHint: true,
@@ -83,9 +83,9 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
       title: "Analyze Local Space",
       description: "Lift the nearby 3D scan into semantic regions, structures, and buildability hints.",
       inputSchema: {
-        radius: z.number().int().min(1).max(12).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
-        down: z.number().int().min(1).max(16).optional().describe("How many blocks below the player to include. Default: 8."),
-        up: z.number().int().min(1).max(16).optional().describe("How many blocks above the player to include. Default: 12.")
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12.")
       },
       annotations: {
         readOnlyHint: true,
@@ -97,6 +97,32 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
   );
 
   server.registerTool(
+    "project_local_space",
+    {
+      title: "Project Local Space",
+      description: "Project the scanned local space into top and elevation views so the agent can reason about silhouette and massing.",
+      inputSchema: {
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12."),
+        x1: z.number().int().optional().describe("Optional first X bound for the projection focus box."),
+        y1: z.number().int().optional().describe("Optional first Y bound for the projection focus box."),
+        z1: z.number().int().optional().describe("Optional first Z bound for the projection focus box."),
+        x2: z.number().int().optional().describe("Optional second X bound for the projection focus box."),
+        y2: z.number().int().optional().describe("Optional second Y bound for the projection focus box."),
+        z2: z.number().int().optional().describe("Optional second Z bound for the projection focus box.")
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async ({ radius, down, up, x1, y1, z1, x2, y2, z2 }) =>
+      handlers.projectLocalSpace({ radius, down, up, x1, y1, z1, x2, y2, z2 })
+  );
+
+  server.registerTool(
     "plan_build",
     {
       title: "Plan Build",
@@ -104,9 +130,9 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
       inputSchema: {
         blueprintId: z.string().min(3).describe("Blueprint id such as cozy_cabin_v1 or ridge_lantern_lodge_v1."),
         placementMode: z.enum(["floating", "grounded"]).optional().describe("Placement strategy. Defaults to grounded."),
-        radius: z.number().int().min(1).max(12).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
-        down: z.number().int().min(1).max(16).optional().describe("How many blocks below the player to include. Default: 8."),
-        up: z.number().int().min(1).max(16).optional().describe("How many blocks above the player to include. Default: 12."),
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12."),
         clearanceAboveSurface: z.number().min(0).max(8).optional().describe("Floating builds only: extra clearance above the highest occupied support."),
         minSupportRatio: z.number().min(0).max(1).optional().describe("Grounded builds only: minimum supported footprint ratio."),
         maxSurfaceVariance: z.number().int().min(0).max(8).optional().describe("Grounded builds only: maximum tolerated Y variance under the footprint.")
@@ -129,9 +155,9 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
       inputSchema: {
         blueprintId: z.string().min(3).describe("Blueprint id such as cozy_cabin_v1 or ridge_lantern_lodge_v1."),
         placementMode: z.enum(["floating", "grounded"]).optional().describe("Placement strategy. Defaults to grounded."),
-        radius: z.number().int().min(1).max(12).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
-        down: z.number().int().min(1).max(16).optional().describe("How many blocks below the player to include. Default: 8."),
-        up: z.number().int().min(1).max(16).optional().describe("How many blocks above the player to include. Default: 12."),
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12."),
         clearanceAboveSurface: z.number().min(0).max(8).optional().describe("Floating builds only: extra clearance above the highest occupied support."),
         minSupportRatio: z.number().min(0).max(1).optional().describe("Grounded builds only: minimum supported footprint ratio."),
         maxSurfaceVariance: z.number().int().min(0).max(8).optional().describe("Grounded builds only: maximum tolerated Y variance under the footprint."),

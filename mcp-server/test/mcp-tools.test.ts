@@ -178,6 +178,44 @@ test("createToolHandlers exposes analyze_local_space as semantic space-model con
   assert.match(readFirstText(result.content), /buildability/i);
 });
 
+test("createToolHandlers exposes project_local_space as orthographic projection content", async () => {
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    getInventory: async () => sampleInventory(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleGroundedBuildSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.projectLocalSpace({
+    radius: 12,
+    down: 6,
+    up: 12,
+    x1: 202,
+    y1: 70,
+    z1: 92,
+    x2: 214,
+    y2: 76,
+    z2: 102
+  });
+
+  assert.equal(result.isError, false);
+  const projection = (result.structuredContent as { projection?: { topView?: { width?: number }, northElevation?: { height?: number } } }).projection;
+  assert.ok((projection?.topView?.width ?? 0) >= 10);
+  assert.ok((projection?.northElevation?.height ?? 0) >= 1);
+  assert.match(readFirstText(result.content), /projection/i);
+});
+
 test("createToolHandlers exposes plan_build as a grounded build plan with bounds and support metrics", async () => {
   const handlers = createToolHandlers({
     getPlayerState: async () => samplePlayer(),
