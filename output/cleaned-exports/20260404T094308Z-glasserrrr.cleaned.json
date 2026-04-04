@@ -1,0 +1,507 @@
+{
+  "context": {
+    "rawSchemaVersion": 1,
+    "cleanedSchemaVersion": 1,
+    "scannedAt": "2026-04-04T09:43:08.540816Z",
+    "dimension": "minecraft:overworld",
+    "center": {
+      "x": 26,
+      "y": 269,
+      "z": 13
+    },
+    "localBox": {
+      "width": 16,
+      "depth": 16,
+      "height": 8
+    },
+    "surfaceBox": {
+      "width": 32,
+      "depth": 32
+    }
+  },
+  "player": {
+    "name": "GLAsserrrr",
+    "uuid": "357a2240-a9d2-4d75-981e-c9e83ed7d365",
+    "blockPos": {
+      "x": 26,
+      "y": 269,
+      "z": 13
+    },
+    "exactPos": {
+      "x": 26.767399109491432,
+      "y": 269.5,
+      "z": 13.23850627597137
+    },
+    "yaw": -94.500015,
+    "pitch": -4.5001297,
+    "health": 20,
+    "food": 20,
+    "saturation": 4,
+    "onGround": true,
+    "hands": {
+      "mainHandItemId": "minecraft:air",
+      "offHandItemId": "minecraft:air"
+    }
+  },
+  "inventory": {
+    "totalSlots": 41,
+    "occupiedSlots": 0,
+    "stacks": [],
+    "totalsByItem": []
+  },
+  "localEnvironment": {
+    "totalBlocks": 2048,
+    "airBlocks": 1511,
+    "nonAirBlocks": 537,
+    "airRatio": 0.7378,
+    "topNonAirBlocks": [
+      {
+        "blockId": "minecraft:stone",
+        "count": 124
+      },
+      {
+        "blockId": "minecraft:spruce_planks",
+        "count": 96
+      },
+      {
+        "blockId": "minecraft:terracotta",
+        "count": 71
+      },
+      {
+        "blockId": "minecraft:stripped_acacia_log",
+        "count": 46
+      },
+      {
+        "blockId": "minecraft:acacia_stairs",
+        "count": 32
+      },
+      {
+        "blockId": "minecraft:diorite",
+        "count": 31
+      },
+      {
+        "blockId": "minecraft:bricks",
+        "count": 26
+      },
+      {
+        "blockId": "minecraft:granite",
+        "count": 22
+      },
+      {
+        "blockId": "minecraft:spruce_fence",
+        "count": 17
+      },
+      {
+        "blockId": "minecraft:cyan_wool",
+        "count": 15
+      },
+      {
+        "blockId": "minecraft:acacia_slab",
+        "count": 14
+      },
+      {
+        "blockId": "minecraft:emerald_ore",
+        "count": 11
+      }
+    ],
+    "yLevelProfiles": [
+      {
+        "y": 265,
+        "nonAirBlocks": 82,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:stone",
+            "count": 46
+          },
+          {
+            "blockId": "minecraft:diorite",
+            "count": 12
+          },
+          {
+            "blockId": "minecraft:granite",
+            "count": 9
+          },
+          {
+            "blockId": "minecraft:emerald_ore",
+            "count": 6
+          },
+          {
+            "blockId": "minecraft:acacia_slab",
+            "count": 4
+          },
+          {
+            "blockId": "minecraft:acacia_stairs",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "y": 266,
+        "nonAirBlocks": 102,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:stone",
+            "count": 53
+          },
+          {
+            "blockId": "minecraft:diorite",
+            "count": 14
+          },
+          {
+            "blockId": "minecraft:acacia_slab",
+            "count": 10
+          },
+          {
+            "blockId": "minecraft:granite",
+            "count": 10
+          },
+          {
+            "blockId": "minecraft:acacia_stairs",
+            "count": 8
+          },
+          {
+            "blockId": "minecraft:emerald_ore",
+            "count": 4
+          }
+        ]
+      },
+      {
+        "y": 267,
+        "nonAirBlocks": 126,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:spruce_planks",
+            "count": 96
+          },
+          {
+            "blockId": "minecraft:stripped_acacia_log",
+            "count": 26
+          },
+          {
+            "blockId": "minecraft:stone",
+            "count": 3
+          },
+          {
+            "blockId": "minecraft:diorite",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "y": 268,
+        "nonAirBlocks": 53,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:spruce_fence",
+            "count": 15
+          },
+          {
+            "blockId": "minecraft:terracotta",
+            "count": 12
+          },
+          {
+            "blockId": "minecraft:stripped_acacia_log",
+            "count": 11
+          },
+          {
+            "blockId": "minecraft:bricks",
+            "count": 6
+          },
+          {
+            "blockId": "minecraft:cyan_bed",
+            "count": 2
+          },
+          {
+            "blockId": "minecraft:stone",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "y": 269,
+        "nonAirBlocks": 32,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:terracotta",
+            "count": 13
+          },
+          {
+            "blockId": "minecraft:bricks",
+            "count": 5
+          },
+          {
+            "blockId": "minecraft:lantern",
+            "count": 4
+          },
+          {
+            "blockId": "minecraft:stone",
+            "count": 3
+          },
+          {
+            "blockId": "minecraft:spruce_fence",
+            "count": 2
+          },
+          {
+            "blockId": "minecraft:stripped_acacia_log",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "y": 270,
+        "nonAirBlocks": 38,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:terracotta",
+            "count": 12
+          },
+          {
+            "blockId": "minecraft:bricks",
+            "count": 5
+          },
+          {
+            "blockId": "minecraft:dark_oak_trapdoor",
+            "count": 5
+          },
+          {
+            "blockId": "minecraft:stone",
+            "count": 5
+          },
+          {
+            "blockId": "minecraft:granite",
+            "count": 3
+          },
+          {
+            "blockId": "minecraft:cyan_wool",
+            "count": 2
+          }
+        ]
+      },
+      {
+        "y": 271,
+        "nonAirBlocks": 52,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:terracotta",
+            "count": 18
+          },
+          {
+            "blockId": "minecraft:cyan_wool",
+            "count": 13
+          },
+          {
+            "blockId": "minecraft:acacia_stairs",
+            "count": 8
+          },
+          {
+            "blockId": "minecraft:stone",
+            "count": 6
+          },
+          {
+            "blockId": "minecraft:bricks",
+            "count": 4
+          },
+          {
+            "blockId": "minecraft:diorite",
+            "count": 1
+          }
+        ]
+      },
+      {
+        "y": 272,
+        "nonAirBlocks": 52,
+        "dominantBlocks": [
+          {
+            "blockId": "minecraft:terracotta",
+            "count": 16
+          },
+          {
+            "blockId": "minecraft:acacia_stairs",
+            "count": 12
+          },
+          {
+            "blockId": "minecraft:bricks",
+            "count": 6
+          },
+          {
+            "blockId": "minecraft:stone",
+            "count": 6
+          },
+          {
+            "blockId": "minecraft:diorite",
+            "count": 3
+          },
+          {
+            "blockId": "minecraft:lantern",
+            "count": 2
+          }
+        ]
+      }
+    ]
+  },
+  "surface": {
+    "sampleCount": 1024,
+    "height": {
+      "min": 91,
+      "max": 292,
+      "range": 201,
+      "average": 217.34
+    },
+    "topBlocks": [
+      {
+        "blockId": "minecraft:grass_block",
+        "count": 260
+      },
+      {
+        "blockId": "minecraft:pink_terracotta",
+        "count": 82
+      },
+      {
+        "blockId": "minecraft:spruce_planks",
+        "count": 77
+      },
+      {
+        "blockId": "minecraft:acacia_stairs",
+        "count": 74
+      },
+      {
+        "blockId": "minecraft:farmland",
+        "count": 55
+      },
+      {
+        "blockId": "minecraft:oak_log",
+        "count": 50
+      },
+      {
+        "blockId": "minecraft:spruce_fence",
+        "count": 49
+      },
+      {
+        "blockId": "minecraft:purple_terracotta",
+        "count": 35
+      },
+      {
+        "blockId": "minecraft:spruce_slab",
+        "count": 33
+      },
+      {
+        "blockId": "minecraft:quartz_bricks",
+        "count": 27
+      },
+      {
+        "blockId": "minecraft:coarse_dirt",
+        "count": 25
+      },
+      {
+        "blockId": "minecraft:diorite",
+        "count": 24
+      }
+    ]
+  },
+  "entities": {
+    "total": 4,
+    "byType": [
+      {
+        "entityType": "minecraft:villager",
+        "count": 4
+      }
+    ],
+    "nearby": [
+      {
+        "entityType": "minecraft:villager",
+        "name": "矿世奇才",
+        "blockPos": {
+          "x": 18,
+          "y": 268,
+          "z": 5
+        },
+        "health": 20
+      },
+      {
+        "entityType": "minecraft:villager",
+        "name": "红石工程师・齿轮・艾达",
+        "blockPos": {
+          "x": 24,
+          "y": 268,
+          "z": 7
+        },
+        "health": 20
+      },
+      {
+        "entityType": "minecraft:villager",
+        "name": "风栖植物",
+        "blockPos": {
+          "x": 18,
+          "y": 268,
+          "z": 4
+        },
+        "health": 20
+      },
+      {
+        "entityType": "minecraft:villager",
+        "name": "丁冬",
+        "blockPos": {
+          "x": 19,
+          "y": 268,
+          "z": 4
+        },
+        "health": 20
+      }
+    ]
+  },
+  "pointsOfInterest": {
+    "total": 4,
+    "byBlockId": [
+      {
+        "blockId": "minecraft:cyan_bed",
+        "count": 2
+      },
+      {
+        "blockId": "lootr:lootr_chest",
+        "count": 1
+      },
+      {
+        "blockId": "minecraft:lectern",
+        "count": 1
+      }
+    ],
+    "entries": [
+      {
+        "blockId": "minecraft:lectern",
+        "blockPos": {
+          "x": 23,
+          "y": 268,
+          "z": 9
+        },
+        "kindId": "minecraft:lectern"
+      },
+      {
+        "blockId": "minecraft:cyan_bed",
+        "blockPos": {
+          "x": 18,
+          "y": 268,
+          "z": 10
+        },
+        "kindId": "minecraft:bed"
+      },
+      {
+        "blockId": "minecraft:cyan_bed",
+        "blockPos": {
+          "x": 19,
+          "y": 268,
+          "z": 10
+        },
+        "kindId": "minecraft:bed"
+      },
+      {
+        "blockId": "lootr:lootr_chest",
+        "blockPos": {
+          "x": 24,
+          "y": 268,
+          "z": 10
+        },
+        "kindId": "lootr:special_loot_chest"
+      }
+    ]
+  }
+}

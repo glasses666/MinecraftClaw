@@ -16,6 +16,7 @@ The repository now contains:
 - a TypeScript MCP server workspace
 - the first bridge configuration test
 - raw world snapshot export on player join and via command
+- a first-pass MCP-side raw export cleaner
 
 ### Fabric smoke-test commands
 
@@ -42,6 +43,22 @@ Each export directory contains:
 - `surface_map.json`
 
 This is intentionally uncleaned raw data so the next step can be driven by real output shape instead of guesses.
+
+### First-pass cleaning
+
+The MCP server now includes a first-pass cleaner that reduces the raw export into an agent-friendly summary:
+
+- context and player state are kept intact
+- empty inventory slots are removed
+- local blocks are compressed into non-air counts and thin `y`-level profiles
+- surface data is compressed into height stats and dominant block counts
+- raw SNBT is removed from default entity and POI summaries
+
+Reference artifacts:
+
+- `docs/plans/2026-04-04-raw-export-cleaning-design.md`
+- `output/jupyter-notebook/minecraftclaw-raw-export-profiling.ipynb`
+- `output/cleaned-exports/20260404T094308Z-glasserrrr.cleaned.json`
 
 ## Current Milestone
 
