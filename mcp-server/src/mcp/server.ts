@@ -10,6 +10,31 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
     version: "0.1.0"
   });
   const handlers = createToolHandlers(dependencies);
+  const runtimeBlueprintStepSchema = z.union([
+    z.object({
+      kind: z.literal("fill"),
+      from: z.object({ x: z.number().int(), y: z.number().int(), z: z.number().int() }),
+      to: z.object({ x: z.number().int(), y: z.number().int(), z: z.number().int() }),
+      blockId: z.string().min(3)
+    }),
+    z.object({
+      kind: z.literal("block"),
+      at: z.object({ x: z.number().int(), y: z.number().int(), z: z.number().int() }),
+      blockId: z.string().min(3)
+    }),
+    z.object({
+      kind: z.literal("command"),
+      commandTemplate: z.string().min(3),
+      offset: z.object({ x: z.number().int(), y: z.number().int(), z: z.number().int() })
+    })
+  ]);
+  const runtimeBlueprintSchema = z.object({
+    id: z.string().min(3).describe("Runtime blueprint identifier."),
+    width: z.number().int().min(1).max(64).describe("Blueprint width in blocks."),
+    depth: z.number().int().min(1).max(64).describe("Blueprint depth in blocks."),
+    height: z.number().int().min(1).max(64).describe("Blueprint height in blocks."),
+    steps: z.array(runtimeBlueprintStepSchema).min(1).max(512).describe("Relative fill/block/command steps.")
+  });
 
   server.registerTool(
     "get_player_state",
@@ -97,6 +122,25 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
   );
 
   server.registerTool(
+    "analyze_build_site",
+    {
+      title: "Analyze Build Site",
+      description: "Compress the nearby terrain into symbol maps and site-aware building recommendations.",
+      inputSchema: {
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12.")
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async ({ radius, down, up }) => handlers.analyzeBuildSite({ radius, down, up })
+  );
+
+  server.registerTool(
     "project_local_space",
     {
       title: "Project Local Space",
@@ -148,6 +192,31 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
   );
 
   server.registerTool(
+    "preview_blueprint",
+    {
+      title: "Preview Blueprint",
+      description: "Preview a runtime blueprint against the scanned site without modifying the world.",
+      inputSchema: {
+        blueprint: runtimeBlueprintSchema.describe("Runtime blueprint object with relative steps."),
+        placementMode: z.enum(["floating", "grounded"]).optional().describe("Placement strategy. Defaults to grounded."),
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12."),
+        clearanceAboveSurface: z.number().min(0).max(8).optional().describe("Floating builds only: extra clearance above the highest occupied support."),
+        minSupportRatio: z.number().min(0).max(1).optional().describe("Grounded builds only: minimum supported footprint ratio."),
+        maxSurfaceVariance: z.number().int().min(0).max(8).optional().describe("Grounded builds only: maximum tolerated Y variance under the footprint.")
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async ({ blueprint, placementMode, radius, down, up, clearanceAboveSurface, minSupportRatio, maxSurfaceVariance }) =>
+      handlers.previewBlueprint({ blueprint, placementMode, radius, down, up, clearanceAboveSurface, minSupportRatio, maxSurfaceVariance })
+  );
+
+  server.registerTool(
     "build_structure",
     {
       title: "Build Structure",
@@ -172,6 +241,42 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
     async ({ blueprintId, placementMode, radius, down, up, clearanceAboveSurface, minSupportRatio, maxSurfaceVariance, allowOverlap }) =>
       handlers.buildStructure({
         blueprintId,
+        placementMode,
+        radius,
+        down,
+        up,
+        clearanceAboveSurface,
+        minSupportRatio,
+        maxSurfaceVariance,
+        allowOverlap
+      })
+  );
+
+  server.registerTool(
+    "build_from_blueprint",
+    {
+      title: "Build From Blueprint",
+      description: "Plan and execute a runtime blueprint without registering it in the server code first.",
+      inputSchema: {
+        blueprint: runtimeBlueprintSchema.describe("Runtime blueprint object with relative steps."),
+        placementMode: z.enum(["floating", "grounded"]).optional().describe("Placement strategy. Defaults to grounded."),
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12."),
+        clearanceAboveSurface: z.number().min(0).max(8).optional().describe("Floating builds only: extra clearance above the highest occupied support."),
+        minSupportRatio: z.number().min(0).max(1).optional().describe("Grounded builds only: minimum supported footprint ratio."),
+        maxSurfaceVariance: z.number().int().min(0).max(8).optional().describe("Grounded builds only: maximum tolerated Y variance under the footprint."),
+        allowOverlap: z.boolean().optional().describe("Force the build even if the selected plan reports overlap. Defaults to false.")
+      },
+      annotations: {
+        destructiveHint: true,
+        idempotentHint: false,
+        openWorldHint: false
+      }
+    },
+    async ({ blueprint, placementMode, radius, down, up, clearanceAboveSurface, minSupportRatio, maxSurfaceVariance, allowOverlap }) =>
+      handlers.buildFromBlueprint({
+        blueprint,
         placementMode,
         radius,
         down,

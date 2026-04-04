@@ -51,8 +51,10 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
   const toolNames = tools.tools.map((tool) => tool.name).sort();
 
   assert.deepEqual(toolNames, [
+    "analyze_build_site",
     "analyze_local_space",
     "break_block",
+    "build_from_blueprint",
     "build_structure",
     "clear_box",
     "fill_box",
@@ -61,6 +63,7 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
     "give_item",
     "place_block",
     "plan_build",
+    "preview_blueprint",
     "project_local_space",
     "run_command",
     "scan_local_space",

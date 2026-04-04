@@ -14,11 +14,14 @@ import type {
 import {
   buildExecutionPlan,
   getBlueprint,
+  planBlueprintBuild,
   planStructureBuild,
   type BlueprintPlacementMode,
   type BuildPlan
 } from "../builder/planner.js";
+import { normalizeRuntimeBlueprint, type RuntimeBlueprint } from "../builder/runtime-blueprint.js";
 import { projectLocalSpace, type ProjectionBounds } from "./space-projection.js";
+import { buildSiteBrief } from "./site-brief.js";
 import { buildSpaceModel } from "./space-model.js";
 
 export interface ToolDependencies {
@@ -37,9 +40,12 @@ export interface ToolHandlers {
   teleportPlayer(request: TeleportRequest): Promise<CallToolResult>;
   scanLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
   analyzeLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
+  analyzeBuildSite(request: SpaceScanRequest): Promise<CallToolResult>;
   projectLocalSpace(request: ProjectLocalSpaceRequest): Promise<CallToolResult>;
   planBuild(request: PlanBuildRequest): Promise<CallToolResult>;
+  previewBlueprint(request: PreviewBlueprintRequest): Promise<CallToolResult>;
   buildStructure(request: BuildStructureRequest): Promise<CallToolResult>;
+  buildFromBlueprint(request: BuildFromBlueprintRequest): Promise<CallToolResult>;
   placeBlock(request: PlaceBlockRequest): Promise<CallToolResult>;
   breakBlock(request: Omit<PlaceBlockRequest, "blockId">): Promise<CallToolResult>;
   fillBox(request: FillBoxRequest): Promise<CallToolResult>;
@@ -82,6 +88,18 @@ interface PlanBuildRequest extends SpaceScanRequest {
 }
 
 interface BuildStructureRequest extends PlanBuildRequest {
+  allowOverlap?: boolean;
+}
+
+interface PreviewBlueprintRequest extends SpaceScanRequest {
+  blueprint: unknown;
+  placementMode?: BlueprintPlacementMode;
+  clearanceAboveSurface?: number;
+  minSupportRatio?: number;
+  maxSurfaceVariance?: number;
+}
+
+interface BuildFromBlueprintRequest extends PreviewBlueprintRequest {
   allowOverlap?: boolean;
 }
 
@@ -191,6 +209,33 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
         };
       } catch (error) {
         return errorResult(`Failed to analyze local space: ${describeError(error)}`);
+      }
+    },
+
+    async analyzeBuildSite(request) {
+      const normalizedRequest = normalizeScanRequest(request);
+
+      if (normalizedRequest instanceof Error) {
+        return errorResult(normalizedRequest.message);
+      }
+
+      try {
+        const space = await dependencies.scanLocalSpace(normalizedRequest);
+        const site = buildSiteBrief(space);
+        return {
+          content: [
+            {
+              type: "text",
+              text: describeBuildSite(site)
+            }
+          ],
+          structuredContent: {
+            site
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to analyze build site: ${describeError(error)}`);
       }
     },
 
@@ -320,6 +365,107 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
         };
       } catch (error) {
         return errorResult(`Failed to build structure: ${describeError(error)}`);
+      }
+    },
+
+    async previewBlueprint(request) {
+      const normalizedRequest = normalizePreviewBlueprintRequest(request);
+      if (normalizedRequest instanceof Error) {
+        return errorResult(normalizedRequest.message);
+      }
+
+      try {
+        const space = await dependencies.scanLocalSpace(normalizedRequest.scan);
+        const plan = planBlueprintBuild(
+          space,
+          normalizedRequest.blueprint,
+          normalizedRequest.placementMode,
+          normalizedRequest.options
+        );
+
+        if (plan instanceof Error) {
+          return errorResult(plan.message);
+        }
+
+        const site = buildSiteBrief(space);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `${describeBuildPlan(plan)} Site guidance: ${site.recommendations.foundationStyle}; ${site.recommendations.massingStrategy}.`
+            }
+          ],
+          structuredContent: {
+            preview: {
+              plan,
+              site
+            }
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to preview blueprint: ${describeError(error)}`);
+      }
+    },
+
+    async buildFromBlueprint(request) {
+      const normalizedRequest = normalizeBuildFromBlueprintRequest(request);
+      if (normalizedRequest instanceof Error) {
+        return errorResult(normalizedRequest.message);
+      }
+
+      try {
+        const space = await dependencies.scanLocalSpace(normalizedRequest.scan);
+        const plan = planBlueprintBuild(
+          space,
+          normalizedRequest.blueprint,
+          normalizedRequest.placementMode,
+          normalizedRequest.options
+        );
+
+        if (plan instanceof Error) {
+          return errorResult(plan.message);
+        }
+
+        if (!plan.assessment.isClear && !normalizedRequest.allowOverlap) {
+          return errorResult("Runtime blueprint overlaps existing blocks or POIs. Re-run with allowOverlap=true to force it.");
+        }
+
+        const executionPlan = buildExecutionPlan(normalizedRequest.blueprint, plan.origin);
+        let totalChangedBlocks = 0;
+
+        for (const step of executionPlan) {
+          const result = step.kind === "fill"
+            ? await dependencies.fillBox(step.request)
+            : step.kind === "block"
+              ? await dependencies.placeBlock(step.request)
+              : await dependencies.runCommand(step.request);
+
+          totalChangedBlocks += result.changedBlocks ?? 0;
+        }
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Built ${plan.blueprintId} from runtime blueprint at ${plan.origin.x},${plan.origin.y},${plan.origin.z} using ${executionPlan.length} steps. Total changed blocks: ${totalChangedBlocks}.`
+            }
+          ],
+          structuredContent: {
+            build: {
+              blueprintId: plan.blueprintId,
+              placementMode: plan.placementMode,
+              origin: plan.origin,
+              bounds: plan.bounds,
+              executedStepCount: executionPlan.length,
+              totalChangedBlocks,
+              plan
+            }
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to build runtime blueprint: ${describeError(error)}`);
       }
     },
 
@@ -555,6 +701,10 @@ function describeSpaceModel(model: ReturnType<typeof buildSpaceModel>): string {
     `${model.structures.length} structures. Regions: ${regionSummary || "none"}.`;
 }
 
+function describeBuildSite(site: ReturnType<typeof buildSiteBrief>): string {
+  return `Analyzed build site around ${site.player.name}: site=${site.summary.siteKind}, foundation=${site.recommendations.foundationStyle}, roof=${site.recommendations.roofProfile}.`;
+}
+
 function describeBuildPlan(plan: BuildPlan): string {
   const overlapSummary = plan.assessment.isClear
     ? "clear"
@@ -726,6 +876,103 @@ function normalizeBuildStructureRequest(
   };
 } | Error {
   const normalized = normalizePlanBuildRequest(request);
+  if (normalized instanceof Error) {
+    return normalized;
+  }
+
+  if (request.allowOverlap !== undefined && typeof request.allowOverlap !== "boolean") {
+    return new Error("allowOverlap must be a boolean when provided.");
+  }
+
+  return {
+    ...normalized,
+    allowOverlap: request.allowOverlap ?? false
+  };
+}
+
+function normalizePreviewBlueprintRequest(
+  request: PreviewBlueprintRequest
+): {
+  blueprint: RuntimeBlueprint;
+  placementMode: BlueprintPlacementMode;
+  scan: SpaceScanRequest;
+  options: {
+    clearanceAboveSurface?: number;
+    minSupportRatio?: number;
+    maxSurfaceVariance?: number;
+  };
+} | Error {
+  const blueprint = normalizeRuntimeBlueprint(request.blueprint);
+  if (blueprint instanceof Error) {
+    return blueprint;
+  }
+
+  const placementMode = normalizePlacementMode(request.placementMode);
+  if (placementMode instanceof Error) {
+    return placementMode;
+  }
+
+  const scan = normalizeScanRequest(request);
+  if (scan instanceof Error) {
+    return scan;
+  }
+
+  const clearanceAboveSurface = normalizeOptionalBoundedNumber(
+    request.clearanceAboveSurface,
+    0,
+    8,
+    "clearanceAboveSurface"
+  );
+  if (clearanceAboveSurface instanceof Error) {
+    return clearanceAboveSurface;
+  }
+
+  const minSupportRatio = normalizeOptionalBoundedNumber(
+    request.minSupportRatio,
+    0,
+    1,
+    "minSupportRatio"
+  );
+  if (minSupportRatio instanceof Error) {
+    return minSupportRatio;
+  }
+
+  const maxSurfaceVariance = normalizeOptionalBoundedInteger(
+    request.maxSurfaceVariance,
+    0,
+    8,
+    "maxSurfaceVariance"
+  );
+  if (maxSurfaceVariance instanceof Error) {
+    return maxSurfaceVariance;
+  }
+
+  return {
+    blueprint,
+    placementMode,
+    scan,
+    options: {
+      clearanceAboveSurface,
+      minSupportRatio,
+      maxSurfaceVariance
+    }
+  };
+}
+
+function normalizeBuildFromBlueprintRequest(
+  request: BuildFromBlueprintRequest
+): {
+  blueprint: RuntimeBlueprint;
+  placementMode: BlueprintPlacementMode;
+  scan: SpaceScanRequest;
+  allowOverlap: boolean;
+  options: {
+    clearanceAboveSurface?: number;
+    minSupportRatio?: number;
+    maxSurfaceVariance?: number;
+  };
+} | Error {
+  const normalized = normalizePreviewBlueprintRequest(request);
   if (normalized instanceof Error) {
     return normalized;
   }

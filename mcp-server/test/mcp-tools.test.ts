@@ -178,6 +178,35 @@ test("createToolHandlers exposes analyze_local_space as semantic space-model con
   assert.match(readFirstText(result.content), /buildability/i);
 });
 
+test("createToolHandlers exposes analyze_build_site as a symbolic terrain brief", async () => {
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    getInventory: async () => sampleInventory(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleGroundedBuildSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.analyzeBuildSite({ radius: 12, down: 6, up: 12 });
+  const brief = (result.structuredContent as { site?: { summary?: { siteKind?: string }, symbolMaps?: { surface?: { rows?: string[] } } } }).site;
+
+  assert.equal(result.isError, false);
+  assert.equal(brief?.summary?.siteKind, "rocky_plateau");
+  assert.ok((brief?.symbolMaps?.surface?.rows?.length ?? 0) >= 5);
+  assert.match(readFirstText(result.content), /site/i);
+  assert.match(readFirstText(result.content), /foundation/i);
+});
+
 test("createToolHandlers exposes project_local_space as orthographic projection content", async () => {
   const handlers = createToolHandlers({
     getPlayerState: async () => samplePlayer(),
@@ -538,6 +567,68 @@ test("createToolHandlers exposes build_structure as an executable plan over fill
   assert.match(readFirstText(result.content), /Built ridge_lantern_lodge_v1/);
 });
 
+test("createToolHandlers previews and builds a runtime blueprint without library registration", async () => {
+  const fillRequests: unknown[] = [];
+  const blockRequests: unknown[] = [];
+  const commandRequests: string[] = [];
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    getInventory: async () => sampleInventory(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleGroundedBuildSpace(),
+    placeBlock: async (request) => {
+      blockRequests.push(request);
+      return sampleActionResult("place_block", 1, request.blockId);
+    },
+    fillBox: async (request) => {
+      fillRequests.push(request);
+      return sampleActionResult("fill_box", 8, request.blockId);
+    },
+    runCommand: async ({ command }) => {
+      commandRequests.push(command);
+      return {
+        action: "run_command",
+        success: true,
+        dimension: "minecraft:overworld",
+        changedBlocks: 0,
+        command,
+        commandResult: 1,
+        message: `Executed command: ${command}`
+      };
+    }
+  });
+
+  const preview = await handlers.previewBlueprint({
+    blueprint: sampleRuntimeBlueprint(),
+    placementMode: "grounded",
+    radius: 12,
+    down: 6,
+    up: 12,
+    minSupportRatio: 0.75,
+    maxSurfaceVariance: 1
+  });
+  const build = await handlers.buildFromBlueprint({
+    blueprint: sampleRuntimeBlueprint(),
+    placementMode: "grounded",
+    radius: 12,
+    down: 6,
+    up: 12,
+    minSupportRatio: 0.75,
+    maxSurfaceVariance: 1
+  });
+
+  assert.equal(preview.isError, false);
+  assert.match(readFirstText(preview.content), /runtime_cliff_test/);
+  const previewPlan = (preview.structuredContent as { preview?: { plan?: { blueprintId?: string } } }).preview?.plan;
+  assert.equal(previewPlan?.blueprintId, "runtime_cliff_test");
+
+  assert.equal(build.isError, false);
+  assert.match(readFirstText(build.content), /runtime_cliff_test/);
+  assert.ok(fillRequests.length >= 3);
+  assert.ok(commandRequests.length >= 3);
+  assert.ok(blockRequests.length >= 2);
+});
+
 function readFirstText(content: unknown): string {
   assert.ok(Array.isArray(content));
   const first = content[0] as { text?: string } | undefined;
@@ -692,6 +783,52 @@ function sampleInventory() {
     slots: [
       { slot: 0, itemId: "minecraft:stone", count: 64, displayName: "Stone" },
       { slot: 1, itemId: "minecraft:glass", count: 32, displayName: "Glass" }
+    ]
+  };
+}
+
+function sampleRuntimeBlueprint() {
+  return {
+    id: "runtime_cliff_test",
+    width: 5,
+    depth: 6,
+    height: 5,
+    steps: [
+      {
+        kind: "fill",
+        from: { x: 0, y: 0, z: 0 },
+        to: { x: 4, y: 0, z: 5 },
+        blockId: "minecraft:stone_bricks"
+      },
+      {
+        kind: "fill",
+        from: { x: 1, y: 1, z: 1 },
+        to: { x: 3, y: 3, z: 4 },
+        blockId: "minecraft:oak_planks"
+      },
+      {
+        kind: "fill",
+        from: { x: 2, y: 2, z: 2 },
+        to: { x: 2, y: 3, z: 3 },
+        blockId: "minecraft:air"
+      },
+      { kind: "block", at: { x: 1, y: 2, z: 1 }, blockId: "minecraft:glass_pane" },
+      { kind: "block", at: { x: 3, y: 2, z: 1 }, blockId: "minecraft:glass_pane" },
+      {
+        kind: "command",
+        commandTemplate: "setblock {x} {y} {z} minecraft:spruce_door[facing=south,half=lower,hinge=left,open=false]",
+        offset: { x: 2, y: 1, z: 1 }
+      },
+      {
+        kind: "command",
+        commandTemplate: "setblock {x} {y} {z} minecraft:spruce_door[facing=south,half=upper,hinge=left,open=false]",
+        offset: { x: 2, y: 2, z: 1 }
+      },
+      {
+        kind: "command",
+        commandTemplate: "setblock {x} {y} {z} minecraft:lantern[hanging=true]",
+        offset: { x: 2, y: 4, z: 2 }
+      }
     ]
   };
 }

@@ -460,6 +460,17 @@ export function planStructureBuild(
     return new Error(`Unknown blueprint: ${blueprintId}`);
   }
 
+  return planBlueprintBuild(space, blueprint, placementMode, options);
+}
+
+export function planBlueprintBuild(
+  space: LocalSpaceSnapshot,
+  blueprint: StructureBlueprint,
+  placementMode: BlueprintPlacementMode,
+  options: FloatingPlacementOptions & GroundedPlacementOptions = {}
+): BuildPlan | Error {
+  const blueprintId = blueprint.id;
+
   const placement = placementMode === "grounded"
     ? findGroundedPlacement(space, blueprint, options)
     : findFloatingPlacement(space, blueprint, options);
