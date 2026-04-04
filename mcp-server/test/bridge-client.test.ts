@@ -105,3 +105,116 @@ test("MinecraftClawBridgeClient.teleportPlayer sends absolute teleport coordinat
 
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
+
+test("MinecraftClawBridgeClient.scanLocalSpace requests a compressed local 3D space model", async () => {
+  let receivedBody = "";
+  const server = createServer((request, response) => {
+    if (request.method === "POST" && request.url === "/space/local") {
+      request.setEncoding("utf8");
+      request.on("data", (chunk) => {
+        receivedBody += chunk;
+      });
+      request.on("end", () => {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end(
+          JSON.stringify({
+            status: "ok",
+            space: sampleLocalSpace()
+          })
+        );
+      });
+      return;
+    }
+
+    response.writeHead(404).end();
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address !== null && typeof address !== "string");
+
+  const client = new MinecraftClawBridgeClient({
+    host: "127.0.0.1",
+    port: (address as AddressInfo).port,
+    timeoutMs: 5_000
+  });
+
+  const space = await client.scanLocalSpace({ radius: 4, down: 4, up: 6 });
+
+  assert.deepEqual(JSON.parse(receivedBody), {
+    radius: 4,
+    down: 4,
+    up: 6
+  });
+  assert.equal(space.summary.sampledColumns, 81);
+  assert.equal(space.columns[0]?.x, 26);
+  assert.equal(space.walkableSurfaces[0]?.y, 269);
+
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+});
+
+function sampleLocalSpace() {
+  return {
+    schemaVersion: 1,
+    player: {
+      name: "GLAsserrrr",
+      dimension: "minecraft:overworld",
+      position: { x: 26, y: 269, z: 13 },
+      exactPosition: { x: 26.7674, y: 269.5, z: 13.2385 },
+      yaw: -94.5,
+      pitch: -4.5
+    },
+    bounds: {
+      min: { x: 22, y: 265, z: 9 },
+      max: { x: 30, y: 275, z: 17 }
+    },
+    parameters: {
+      radius: 4,
+      down: 4,
+      up: 6
+    },
+    summary: {
+      sampledColumns: 81,
+      sampledBlocks: 891,
+      occupiedBlocks: 222,
+      airBlocks: 662,
+      fluidBlocks: 7,
+      walkableSurfaceCount: 19,
+      topBlockCounts: [
+        { blockId: "minecraft:grass_block", count: 28 },
+        { blockId: "minecraft:oak_planks", count: 8 }
+      ]
+    },
+    columns: [
+      {
+        x: 26,
+        z: 13,
+        highestOccupiedY: 269,
+        topBlockId: "minecraft:grass_block",
+        walkableY: 269,
+        headroom: 6,
+        occupiedRuns: [
+          { startY: 265, endY: 268, blockId: "minecraft:stone" },
+          { startY: 269, endY: 269, blockId: "minecraft:grass_block" }
+        ]
+      }
+    ],
+    walkableSurfaces: [
+      {
+        x: 26,
+        y: 269,
+        z: 13,
+        blockId: "minecraft:grass_block",
+        headroom: 6
+      }
+    ],
+    pointsOfInterest: [
+      {
+        category: "entity",
+        kindId: "minecraft:villager",
+        label: "Villager",
+        position: { x: 24, y: 269, z: 11 }
+      }
+    ]
+  };
+}

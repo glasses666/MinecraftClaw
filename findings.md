@@ -35,6 +35,17 @@
 - The first client launch with MinecraftClaw installed failed because of `dynamiccrosshaircompat`, not because of MinecraftClaw
 - After disabling `dynamiccrosshaircompat`, `latest.log` showed `MinecraftClaw initialized`, confirming MinecraftClaw itself loads cleanly in the client pack
 - MinecraftClaw is currently only a Fabric-side smoke-test mod; it does not yet expose a localhost bridge or real MCP connection
+- MinecraftClaw now has a verified localhost bridge and a live MCP tool surface for `get_player_state` and `teleport_player`
+- The live bridge successfully listened on `127.0.0.1:47127` inside the Prism test instance
+- The real MCP client read player state successfully and teleported the player back to `26,269,13`
+- A direct teleport to `40,270,-8` later resolved to `40,261,-8` when read back, showing the game clamps the final standing location to valid world geometry
+- The next implementation slice should be a real-time local 3D space model, not another file export pipeline
+- A compressed per-column representation with vertical occupied runs and walkable surfaces is the best current compromise between fidelity and token cost
+- `scan_local_space` is now implemented end-to-end through the live bridge and MCP tool surface
+- The live scan returns a structured local model containing bounds, per-column occupied runs, walkable surfaces, and POIs
+- The live sample at `radius=4, down=4, up=6` returned 81 columns, 891 sampled blocks, 193 occupied blocks, 38 walkable surfaces, and 2 POIs
+- The current nearby scene is clearly a built platform or rooftop area rather than natural terrain: acacia stairs, pink terracotta, spruce fences, cyan wool, trapdoors, stripped acacia logs, and lectern/chest POIs dominate the sample
+- The player was at `26,268,13` with `yaw=6.2999635` and `pitch=27.000015` during the live scan
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -48,6 +59,10 @@
 | Use a monorepo with `mod/` and `mcp-server/` | It keeps the control plane and game integration in one repository while preserving a clean runtime boundary |
 | Use a repo-local npm cache and Gradle home | It avoids sandbox and permission issues with user-global caches during local verification |
 | Create a reusable build-troubleshooting skill from the bootstrap session | The build path involved enough environment-specific failures that preserving the recovery workflow will save time on future sessions |
+| Treat the mod bridge as the canonical live sensing path | It is already validated in-game and is a better base for iterative spatial tooling than disk export files |
+| Build `space_model_v1` around occupied vertical runs, walkable surfaces, and POIs | This is a more agent-usable abstraction of nearby 3D space than a full raw block grid |
+| Use bounded scan parameters with defaults `radius=8, down=8, up=12` | This raises local resolution while keeping payload size deterministic and safe for MCP clients |
+| Represent each `(x,z)` column as occupied vertical runs instead of raw block rows | Run-length compression preserves 3D structure and cuts token cost sharply |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -58,6 +73,8 @@
 | Gradle wrapper download timed out with the default 10s timeout | Increased wrapper `networkTimeout` to 120000 |
 | Fabric Gradle build fails on Java 26 | Must run Gradle under Java 21 or 17 |
 | Prism client pack crashed on first retest with MinecraftClaw installed | Root cause was `dynamiccrosshaircompat` mixin failure, so the mod was temporarily moved to `mods.disabled` |
+| Prism `JoinWorldOnLaunch` setting did not take effect automatically | `OverrideMiscellaneous` is false in `instance.cfg`, so the config line alone is not authoritative |
+| Live `/space/local` initially returned `404` | The running Prism instance was still on the older installed jar; copying the rebuilt jar and relaunching fixed it |
 
 ## Resources
 - Workspace: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot
@@ -91,6 +108,8 @@
 - MCPMC: https://github.com/gerred/mcpmc
 - MCP SDK npm package: https://www.npmjs.com/package/@modelcontextprotocol/sdk
 - PrismLauncher instance log: /Users/dracoglasser/Library/Application Support/PrismLauncher/instances/乌托邦探险之旅3.5fix/minecraft/logs/latest.log
+- Live bridge endpoint: http://127.0.0.1:47127
+- New live tool: `scan_local_space`
 
 ## Visual/Browser Findings
 - User screenshot shows a Fabric 1.20.1 setup baseline with LWJGL 3 3.3.1, Minecraft 1.20.1, Intermediary Mappings 1.20.1, and Fabric Loader 0.17.2

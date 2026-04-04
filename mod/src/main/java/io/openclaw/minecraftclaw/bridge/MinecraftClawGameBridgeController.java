@@ -26,6 +26,11 @@ public final class MinecraftClawGameBridgeController implements MinecraftClawBri
 		}).join();
 	}
 
+	@Override
+	public LocalSpaceSnapshot scanLocalSpace(SpaceScanRequest request) {
+		return server.submit(() -> LocalSpaceScanner.scan(requirePlayer(), request)).join();
+	}
+
 	private ServerPlayerEntity requirePlayer() {
 		List<ServerPlayerEntity> players = server.getPlayerManager().getPlayerList();
 

@@ -34,6 +34,7 @@ public final class MinecraftClawBridgeServer {
 		server.setExecutor(executor);
 		server.createContext("/player", this::handlePlayerState);
 		server.createContext("/player/teleport", this::handleTeleportPlayer);
+		server.createContext("/space/local", this::handleLocalSpace);
 		server.start();
 	}
 
@@ -70,6 +71,13 @@ public final class MinecraftClawBridgeServer {
 		});
 	}
 
+	private void handleLocalSpace(HttpExchange exchange) throws IOException {
+		handleSpace(exchange, "POST", () -> {
+			String body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+			return controller.scanLocalSpace(MinecraftClawBridgeJson.parseSpaceScanRequest(body));
+		});
+	}
+
 	private void handle(HttpExchange exchange, String expectedMethod, BridgeHandler handler) throws IOException {
 		try (exchange) {
 			if (!expectedMethod.equals(exchange.getRequestMethod())) {
@@ -79,6 +87,24 @@ public final class MinecraftClawBridgeServer {
 
 			BridgePlayerSnapshot player = handler.handle();
 			writeJsonResponse(exchange, 200, MinecraftClawBridgeJson.playerResponse(player));
+		} catch (IllegalArgumentException exception) {
+			writeJsonResponse(exchange, 400, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		} catch (IllegalStateException exception) {
+			writeJsonResponse(exchange, 503, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		} catch (Exception exception) {
+			writeJsonResponse(exchange, 500, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
+		}
+	}
+
+	private void handleSpace(HttpExchange exchange, String expectedMethod, SpaceHandler handler) throws IOException {
+		try (exchange) {
+			if (!expectedMethod.equals(exchange.getRequestMethod())) {
+				writeJsonResponse(exchange, 405, MinecraftClawBridgeJson.errorResponse("Method not allowed."));
+				return;
+			}
+
+			LocalSpaceSnapshot space = handler.handle();
+			writeJsonResponse(exchange, 200, MinecraftClawBridgeJson.spaceResponse(space));
 		} catch (IllegalArgumentException exception) {
 			writeJsonResponse(exchange, 400, MinecraftClawBridgeJson.errorResponse(exception.getMessage()));
 		} catch (IllegalStateException exception) {
@@ -98,5 +124,10 @@ public final class MinecraftClawBridgeServer {
 	@FunctionalInterface
 	private interface BridgeHandler {
 		BridgePlayerSnapshot handle() throws Exception;
+	}
+
+	@FunctionalInterface
+	private interface SpaceHandler {
+		LocalSpaceSnapshot handle() throws Exception;
 	}
 }

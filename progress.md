@@ -66,17 +66,74 @@
   - mcp-server/test/bridge-config.test.ts (created)
 
 ### Phase 5: Delivery
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - Created a reusable `minecraftclaw-build-guide` skill capturing build and launch pitfalls from the bootstrap session
   - Validated and packaged the skill into `dist/minecraftclaw-build-guide.skill`
   - Installed `minecraftclaw-0.1.0.jar` into the PrismLauncher 1.20.1 instance `乌托邦探险之旅3.5fix`
   - Diagnosed the first launch failure as an unrelated `dynamiccrosshaircompat` client-mod crash
   - Disabled `dynamiccrosshaircompat` for retest and confirmed `MinecraftClaw initialized` appears in `latest.log`
+  - Added the live localhost bridge, MCP player tools, and real in-game teleport verification
 - Files created/modified:
   - skills/minecraftclaw-build-guide/SKILL.md (created)
   - skills/minecraftclaw-build-guide/references/build-pitfalls.md (created)
   - dist/minecraftclaw-build-guide.skill (created)
+
+### Phase 6: Live MCP Bridge
+- **Status:** complete
+- Actions taken:
+  - Added a mod-side localhost bridge and MCP tools for `get_player_state` and `teleport_player`
+  - Added red-first tests for the bridge client, MCP tool registration, tool handlers, and bridge HTTP routes
+  - Built the mod, installed the new jar into the Prism instance, launched the game, and verified the bridge was listening on `127.0.0.1:47127`
+  - Used a real MCP client to read player state, then teleported the player back to `26,269,13`
+- Files created/modified:
+  - mcp-server/src/bridge/client.ts (created)
+  - mcp-server/src/mcp/server.ts (created)
+  - mcp-server/src/mcp/tools.ts (created)
+  - mcp-server/test/bridge-client.test.ts (created)
+  - mcp-server/test/mcp-server.test.ts (created)
+  - mcp-server/test/mcp-tools.test.ts (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/* (created)
+  - mod/src/test/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeServerTest.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/MinecraftClawMod.java (updated)
+
+### Phase 7: Space Reconstruction
+- **Status:** complete
+- **Started:** 2026-04-04 22:18 Asia/Shanghai
+- Actions taken:
+  - Switched planning from connectivity-only work to real-time local 3D space reconstruction
+  - Reviewed the existing raw export scan shape, bridge controller, and MCP tool surface
+  - Chose `space_model_v1` as the next slice: occupied runs, walkable surfaces, and POIs around the player
+  - Added red-first tests for `/space/local`, `scan_local_space`, and the MCP bridge client
+  - Implemented bounded local-space scanning with per-column occupied runs, walkable surfaces, and POIs
+  - Verified the live bridge and the real MCP tool against the running Prism instance
+- Files created/modified:
+  - task_plan.md (updated)
+  - findings.md (updated)
+  - progress.md (updated)
+  - mcp-server/src/bridge/client.ts (updated)
+  - mcp-server/src/mcp/server.ts (updated)
+  - mcp-server/src/mcp/tools.ts (updated)
+  - mcp-server/test/bridge-client.test.ts (updated)
+  - mcp-server/test/mcp-server.test.ts (updated)
+  - mcp-server/test/mcp-tools.test.ts (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/SpaceScanRequest.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/LocalSpaceSnapshot.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/LocalSpaceScanner.java (created)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeController.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeJson.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeServer.java (updated)
+  - mod/src/main/java/io/openclaw/minecraftclaw/bridge/MinecraftClawGameBridgeController.java (updated)
+  - mod/src/test/java/io/openclaw/minecraftclaw/bridge/MinecraftClawBridgeServerTest.java (updated)
+
+### Phase 8: Testing & Verification
+- **Status:** complete
+- Actions taken:
+  - Ran the full `mcp-server` test suite and TypeScript build
+  - Ran `:mod:build` under Prism's Java 17 runtime
+  - Verified a live `scan_local_space` call through both direct bridge HTTP and the real MCP stdio server
+- Files created/modified:
+  - progress.md (updated)
 
 ## Test Results
 | Test | Input | Expected | Actual | Status |
@@ -93,6 +150,12 @@
 | Skill validation | `quick_validate.py skills/minecraftclaw-build-guide` | Skill validates | `Skill is valid!` | ✓ |
 | Skill packaging | `package_skill.py skills/minecraftclaw-build-guide dist` | `.skill` file produced | Packaged successfully | ✓ |
 | Prism launch retest | Launch `乌托邦探险之旅3.5fix` after disabling `dynamiccrosshaircompat` | MinecraftClaw initializes | `latest.log` contains `MinecraftClaw initialized` | ✓ |
+| MCP server tests | `cd mcp-server && npm test` | All MCP tests pass | 9/9 passing | ✓ |
+| MCP TypeScript build | `cd mcp-server && npm run build` | TypeScript compile succeeds | Succeeds | ✓ |
+| Mod build | `./gradlew :mod:build --no-daemon` with Prism Java 17 | Mod compiles and remaps jar | Succeeds | ✓ |
+| Live bridge read | `curl http://127.0.0.1:47127/player` | Returns current player state | Returned `GLAsserrrr` at `26,269,13` then later `40,261,-8` after movement | ✓ |
+| Live bridge teleport | `curl POST /player/teleport` and MCP `teleport_player` | Player moves and state updates | Teleport succeeded and state readback matched destination | ✓ |
+| Local space live scan | `curl POST /space/local` and MCP `scan_local_space` | Returns structured local 3D model | Returned 81 columns, 193 occupied blocks, 38 walkable surfaces, and 2 POIs | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -106,15 +169,19 @@
 | 2026-04-04 16:27 | Loom repeatedly truncated `client.jar` / `server.jar` downloads | 1 | Seeded the Loom cache manually with verified Mojang jars |
 | 2026-04-04 16:57 | Gradle dependency download for `fastutil-8.5.9.jar` truncated | 1 | Seeded the Gradle cache from PrismLauncher's existing library copy |
 | 2026-04-04 17:03 | Prism client launch crashed after adding MinecraftClaw | 1 | Root cause was `dynamiccrosshaircompat`; moved it to `mods.disabled` and retested |
+| 2026-04-04 20:34 | `npm install` failed with EPERM on `~/.npm` cache | 1 | Re-ran with repo-local `.npm-cache` |
+| 2026-04-04 20:49 | `:mod:test` compile failed while a parallel Gradle build was mutating source state | 1 | Trusted the successful full `:mod:build` run and avoided duplicate concurrent Gradle invocations |
+| 2026-04-04 22:28 | Live `/space/local` returned `404` after implementation | 1 | Confirmed the running Prism instance still had the older jar, copied the rebuilt jar, and relaunched |
+| 2026-04-04 22:38 | Prism reopened without auto-entering `新的世界` | 1 | Continued after the user manually entered the world instead of forcing a config rewrite |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 4 |
-| Where am I going? | Move from launch verification into real localhost bridge and MCP ping implementation |
-| What's the goal? | Validate a Fabric 1.20.1 + MCP MVP path focused on connectivity first |
-| What have I learned? | MinecraftClaw itself now builds and loads; the remaining gap is bridge functionality, not Fabric packaging |
-| What have I done? | Created the workspace, built the scaffolds, packaged a build-guide skill, installed the mod into Prism, and verified the mod initializes after removing the unrelated crashing client mod |
+| Where am I? | Phase 9 |
+| Where am I going? | Deliver the verified local-space milestone and then iterate on larger-area or higher-resolution reconstruction |
+| What's the goal? | Give the agent a real-time structured model of the player's nearby 3D environment |
+| What have I learned? | The current nearby scene can already be reconstructed as a compact structural model rather than a raw block dump |
+| What have I done? | Implemented and verified `scan_local_space` end-to-end through the live Fabric bridge and MCP server |
 
 ---
 *Update after completing each phase or encountering errors*

@@ -1,10 +1,10 @@
-# Task Plan: Fabric MCP Builder Bot Research
+# Task Plan: Fabric MCP Builder Bot Space Reconstruction
 
 ## Goal
-Validate a practical MVP path for a Fabric 1.20.1 mod plus MCP server that lets an agent sense the Minecraft world and execute building tasks, starting with proving MCP connectivity first.
+Extend the verified Fabric 1.20.1 + MCP bridge so the agent can reconstruct the player's nearby 3D space, not just read player position and teleport.
 
 ## Current Phase
-Phase 4
+Phase 9
 
 ## Phases
 ### Phase 1: Requirements & Discovery
@@ -32,15 +32,39 @@ Phase 4
 - **Status:** complete
 
 ### Phase 5: Delivery
-- [ ] Summarize recommended direction
-- [ ] Provide concrete next steps
-- [ ] Hand off research artifacts
+- [x] Summarize recommended direction
+- [x] Provide concrete next steps
+- [x] Hand off research artifacts
+- **Status:** complete
+
+### Phase 6: Space Model Design
+- [x] Define the first real-time local space model shape
+- [x] Decide which 3D signals are essential for agent reasoning
+- [x] Record tradeoffs between raw voxels and compressed structure
+- **Status:** complete
+
+### Phase 7: Space Model Implementation
+- [x] Add a mod-side local space scan endpoint on the bridge
+- [x] Add an MCP tool that returns structured local space data
+- [x] Verify the tool against the live Prism instance
+- **Status:** complete
+
+### Phase 8: Testing & Verification
+- [x] Add red-first tests for the mod bridge and MCP tool
+- [x] Run local builds and tests
+- [x] Check the live scan against the in-game scene
+- **Status:** complete
+
+### Phase 9: Delivery
+- [ ] Summarize the live local space model behavior
+- [ ] Explain what the agent currently sees around the player
+- [ ] Commit and push the milestone
 - **Status:** in_progress
 
 ## Key Questions
-1. What is the lowest-risk way to connect a Fabric mod to an MCP tool surface?
-2. Which existing Minecraft bot/building projects are reusable references versus dead ends?
-3. What should the first end-to-end MVP prove before adding navigation and construction complexity?
+1. What compressed local-space representation gives the agent the most 3D understanding per token?
+2. Which parts of the nearby scene should be surfaced as walkable surfaces, occupancy runs, and POIs?
+3. How should the scan be parameterized so resolution can increase without exploding payload size?
 
 ## Decisions Made
 | Decision | Rationale |
@@ -53,6 +77,8 @@ Phase 4
 | Start with command-based smoke tests in the Fabric mod | This validates the mod-side sensing path before adding the localhost bridge |
 | Use the PrismLauncher Java 17 runtime as the canonical build JVM | It matches the working 1.20.1 instance and avoids Java 26 incompatibilities |
 | Treat unrelated client-mod crashes separately from MinecraftClaw | The first launch failure came from `dynamiccrosshaircompat`, not from MinecraftClaw |
+| Add a real-time `scan_local_space` MCP tool instead of extending raw export first | The user wants live 3D understanding, and the bridge is already verified end-to-end |
+| Prefer compressed 3D columns plus walkable surfaces over raw block dumps | This preserves spatial structure while keeping the payload small enough for agent use |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -61,8 +87,10 @@ Phase 4
 | Gradle wrapper download timed out at 10 seconds | 1 | Increased `networkTimeout` to 120000 in `gradle-wrapper.properties` |
 | Fabric Gradle build fails under Java 26 with `Unsupported class file major version 70` | 1 | Need to run the build under Java 21 or 17 instead of the system default Java 26 |
 | Prism test launch crashed before mod initialization | 1 | Identified `dynamiccrosshaircompat` as the first hard error and disabled it for retest |
+| `JoinWorldOnLaunch` was set but not honored | 1 | The instance had `OverrideMiscellaneous=false`; live bridge tests proceeded after the world was entered manually/through the running session |
 
 ## Notes
 - Update phase status as research converges
 - Prefer primary sources: Fabric docs, GitHub repos, Modrinth project pages
 - Focus on MVP paths that minimize client automation complexity
+- Keep the live space model useful to an agent before optimizing for larger-area scans

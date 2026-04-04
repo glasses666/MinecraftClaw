@@ -68,6 +68,32 @@ class MinecraftClawBridgeServerTest {
 		assertEquals(-8, json.getAsJsonObject("player").getAsJsonObject("position").get("z").getAsInt());
 	}
 
+	@Test
+	void localSpaceEndpointReturnsCompressedSpaceModel() throws IOException, InterruptedException {
+		StubController controller = new StubController(snapshot(26, 269, 13));
+		server = new MinecraftClawBridgeServer(new MinecraftClawBridgeConfig("127.0.0.1", 0), controller);
+		server.start();
+
+		HttpResponse<String> response = httpClient.send(
+			HttpRequest.newBuilder(server.uri("/space/local"))
+				.header("content-type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString("{\"radius\":4,\"down\":4,\"up\":6}"))
+				.build(),
+			HttpResponse.BodyHandlers.ofString()
+		);
+
+		assertEquals(200, response.statusCode());
+		assertNotNull(controller.lastSpaceScanRequest);
+		assertEquals(4, controller.lastSpaceScanRequest.radius());
+		assertEquals(4, controller.lastSpaceScanRequest.down());
+		assertEquals(6, controller.lastSpaceScanRequest.up());
+
+		JsonObject json = JsonParser.parseString(response.body()).getAsJsonObject();
+		assertEquals("ok", json.get("status").getAsString());
+		assertEquals(81, json.getAsJsonObject("space").getAsJsonObject("summary").get("sampledColumns").getAsInt());
+		assertEquals(26, json.getAsJsonObject("space").getAsJsonArray("columns").get(0).getAsJsonObject().get("x").getAsInt());
+	}
+
 	private static BridgePlayerSnapshot snapshot(int x, int y, int z) {
 		return new BridgePlayerSnapshot(
 			"GLAsserrrr",
@@ -82,6 +108,7 @@ class MinecraftClawBridgeServerTest {
 	private static final class StubController implements MinecraftClawBridgeController {
 		private BridgePlayerSnapshot playerState;
 		private TeleportRequest lastTeleportRequest;
+		private SpaceScanRequest lastSpaceScanRequest;
 
 		private StubController(BridgePlayerSnapshot playerState) {
 			this.playerState = playerState;
@@ -104,6 +131,54 @@ class MinecraftClawBridgeServerTest {
 				0.0f
 			);
 			return playerState;
+		}
+
+		@Override
+		public LocalSpaceSnapshot scanLocalSpace(SpaceScanRequest request) {
+			lastSpaceScanRequest = request;
+			return new LocalSpaceSnapshot(
+				1,
+				playerState,
+				new LocalSpaceBounds(
+					new BridgeBlockPosition(22, 265, 9),
+					new BridgeBlockPosition(30, 275, 17)
+				),
+				request,
+				new LocalSpaceSummary(
+					81,
+					891,
+					222,
+					662,
+					7,
+					19,
+					java.util.List.of(new BlockCount("minecraft:grass_block", 28))
+				),
+				java.util.List.of(
+					new LocalSpaceColumn(
+						26,
+						13,
+						269,
+						"minecraft:grass_block",
+						269,
+						6,
+						java.util.List.of(
+							new OccupiedRun(265, 268, "minecraft:stone"),
+							new OccupiedRun(269, 269, "minecraft:grass_block")
+						)
+					)
+				),
+				java.util.List.of(
+					new WalkableSurface(26, 269, 13, "minecraft:grass_block", 6)
+				),
+				java.util.List.of(
+					new SpacePointOfInterest(
+						"entity",
+						"minecraft:villager",
+						"Villager",
+						new BridgeBlockPosition(24, 269, 11)
+					)
+				)
+			);
 		}
 	}
 }

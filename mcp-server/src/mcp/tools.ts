@@ -1,15 +1,22 @@
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
-import type { BridgePlayerState, TeleportRequest } from "../bridge/client.js";
+import type {
+  BridgePlayerState,
+  LocalSpaceSnapshot,
+  SpaceScanRequest,
+  TeleportRequest
+} from "../bridge/client.js";
 
 export interface ToolDependencies {
   getPlayerState(): Promise<BridgePlayerState>;
   teleportPlayer(request: TeleportRequest): Promise<BridgePlayerState>;
+  scanLocalSpace(request: SpaceScanRequest): Promise<LocalSpaceSnapshot>;
 }
 
 export interface ToolHandlers {
   getPlayerState(): Promise<CallToolResult>;
   teleportPlayer(request: TeleportRequest): Promise<CallToolResult>;
+  scanLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
 }
 
 export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers {
@@ -36,6 +43,32 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
         );
       } catch (error) {
         return errorResult(`Failed to teleport player: ${describeError(error)}`);
+      }
+    },
+
+    async scanLocalSpace(request) {
+      const normalizedRequest = normalizeScanRequest(request);
+
+      if (normalizedRequest instanceof Error) {
+        return errorResult(normalizedRequest.message);
+      }
+
+      try {
+        const space = await dependencies.scanLocalSpace(normalizedRequest);
+        return {
+          content: [
+            {
+              type: "text",
+              text: describeLocalSpace(space)
+            }
+          ],
+          structuredContent: {
+            space
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to scan local space: ${describeError(error)}`);
       }
     }
   };
@@ -74,10 +107,58 @@ function describePlayerState(player: BridgePlayerState): string {
     `yaw=${player.yaw} pitch=${player.pitch}`;
 }
 
+function describeLocalSpace(space: LocalSpaceSnapshot): string {
+  const topBlocks = space.summary.topBlockCounts
+    .slice(0, 3)
+    .map((entry) => `${entry.blockId}(${entry.count})`)
+    .join(", ");
+
+  return `Scanned local space around ${space.player.name}: ${space.summary.sampledColumns} columns, ` +
+    `${space.summary.sampledBlocks} sampled blocks, ${space.summary.walkableSurfaceCount} walkable surfaces, ` +
+    `${space.pointsOfInterest.length} POIs. Top surface blocks: ${topBlocks || "none"}.`;
+}
+
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
+}
+
+function normalizeScanRequest(request: SpaceScanRequest): SpaceScanRequest | Error {
+  const radius = normalizeBoundedInteger(request.radius, 8, 1, 12, "radius");
+  if (radius instanceof Error) {
+    return radius;
+  }
+
+  const down = normalizeBoundedInteger(request.down, 8, 1, 16, "down");
+  if (down instanceof Error) {
+    return down;
+  }
+
+  const up = normalizeBoundedInteger(request.up, 12, 1, 16, "up");
+  if (up instanceof Error) {
+    return up;
+  }
+
+  return { radius, down, up };
+}
+
+function normalizeBoundedInteger(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+  label: string
+): number | Error {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (!Number.isInteger(value) || value < min || value > max) {
+    return new Error(`${label} must be an integer between ${min} and ${max}.`);
+  }
+
+  return value;
 }

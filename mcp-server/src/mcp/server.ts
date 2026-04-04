@@ -44,5 +44,24 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
     async ({ x, y, z }) => handlers.teleportPlayer({ x, y, z })
   );
 
+  server.registerTool(
+    "scan_local_space",
+    {
+      title: "Scan Local Space",
+      description: "Scan the player's nearby 3D space as occupied vertical runs, walkable surfaces, and nearby POIs.",
+      inputSchema: {
+        radius: z.number().int().min(1).max(12).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(16).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(16).optional().describe("How many blocks above the player to include. Default: 12.")
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async ({ radius, down, up }) => handlers.scanLocalSpace({ radius, down, up })
+  );
+
   return server;
 }
