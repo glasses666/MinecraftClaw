@@ -29,13 +29,13 @@ Phase 4
 - [x] Outline project layout
 - [x] Define first implementation tasks
 - [x] Identify verification checkpoints
-- **Status:** in_progress
+- **Status:** complete
 
 ### Phase 5: Delivery
 - [ ] Summarize recommended direction
 - [ ] Provide concrete next steps
 - [ ] Hand off research artifacts
-- **Status:** pending
+- **Status:** in_progress
 
 ## Key Questions
 1. What is the lowest-risk way to connect a Fabric mod to an MCP tool surface?
@@ -51,6 +51,8 @@ Phase 4
 | Treat Carpet/WorldEdit/Litematica-family projects as reference layers, not a single dependency stack | No existing project cleanly solves the full goal end-to-end on Fabric 1.20.1 |
 | Use Node/TypeScript for the external MCP server | The MCP SDK is mature there and the localhost bridge will be easier to iterate outside the mod JVM |
 | Start with command-based smoke tests in the Fabric mod | This validates the mod-side sensing path before adding the localhost bridge |
+| Use the PrismLauncher Java 17 runtime as the canonical build JVM | It matches the working 1.20.1 instance and avoids Java 26 incompatibilities |
+| Treat unrelated client-mod crashes separately from MinecraftClaw | The first launch failure came from `dynamiccrosshaircompat`, not from MinecraftClaw |
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
@@ -58,6 +60,7 @@ Phase 4
 | Parent folder is not a git repository | 1 | Initialize a repo inside the new workspace before committing artifacts |
 | Gradle wrapper download timed out at 10 seconds | 1 | Increased `networkTimeout` to 120000 in `gradle-wrapper.properties` |
 | Fabric Gradle build fails under Java 26 with `Unsupported class file major version 70` | 1 | Need to run the build under Java 21 or 17 instead of the system default Java 26 |
+| Prism test launch crashed before mod initialization | 1 | Identified `dynamiccrosshaircompat` as the first hard error and disabled it for retest |
 
 ## Notes
 - Update phase status as research converges

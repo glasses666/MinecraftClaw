@@ -29,6 +29,12 @@
 - The Fabric side is bootstrapped with two smoke-test commands: `/mcclaw_ping` and `/mcclaw_player_state`
 - `mcp-server` tests and TypeScript build pass locally
 - `:mod:build` is currently blocked by the environment defaulting to Java 26; this stack needs Java 21 or 17
+- Building with PrismLauncher's bundled Java 17 runtime succeeds for `:mod:build`
+- The actual 1.20.1 Prism test instance is `乌托邦探险之旅3.5fix`
+- `minecraftclaw-0.1.0.jar` was installed into that instance's `mods/` directory successfully
+- The first client launch with MinecraftClaw installed failed because of `dynamiccrosshaircompat`, not because of MinecraftClaw
+- After disabling `dynamiccrosshaircompat`, `latest.log` showed `MinecraftClaw initialized`, confirming MinecraftClaw itself loads cleanly in the client pack
+- MinecraftClaw is currently only a Fabric-side smoke-test mod; it does not yet expose a localhost bridge or real MCP connection
 
 ## Technical Decisions
 | Decision | Rationale |
@@ -41,6 +47,7 @@
 | Defer real-player camera and UI control to an optional later client companion | The server already exposes enough state to prove end-to-end sensing and action execution |
 | Use a monorepo with `mod/` and `mcp-server/` | It keeps the control plane and game integration in one repository while preserving a clean runtime boundary |
 | Use a repo-local npm cache and Gradle home | It avoids sandbox and permission issues with user-global caches during local verification |
+| Create a reusable build-troubleshooting skill from the bootstrap session | The build path involved enough environment-specific failures that preserving the recovery workflow will save time on future sessions |
 
 ## Issues Encountered
 | Issue | Resolution |
@@ -50,10 +57,12 @@
 | Gradle wrapper files were initially copied to the wrong location | Moved them into `gradle/wrapper/` |
 | Gradle wrapper download timed out with the default 10s timeout | Increased wrapper `networkTimeout` to 120000 |
 | Fabric Gradle build fails on Java 26 | Must run Gradle under Java 21 or 17 |
+| Prism client pack crashed on first retest with MinecraftClaw installed | Root cause was `dynamiccrosshaircompat` mixin failure, so the mod was temporarily moved to `mods.disabled` |
 
 ## Resources
 - Workspace: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot
 - GitHub repo: https://github.com/glasses666/MinecraftClaw
+- Packaged skill: /Users/dracoglasser/自定程式/codex_playground/2026-04-04-1515-fabric-mcp-builder-bot/dist/minecraftclaw-build-guide.skill
 - Fabric networking docs: https://docs.fabricmc.net/develop/networking
 - Fabric command basics: https://docs.fabricmc.net/develop/commands/basics
 - ServerLifecycleEvents: https://maven.fabricmc.net/docs/fabric-api-0.92.1%2B1.20.1/net/fabricmc/fabric/api/event/lifecycle/v1/ServerLifecycleEvents.html
@@ -81,6 +90,7 @@
 - Fundamental Labs Minecraft MCP: https://github.com/FundamentalLabs/minecraft-mcp
 - MCPMC: https://github.com/gerred/mcpmc
 - MCP SDK npm package: https://www.npmjs.com/package/@modelcontextprotocol/sdk
+- PrismLauncher instance log: /Users/dracoglasser/Library/Application Support/PrismLauncher/instances/乌托邦探险之旅3.5fix/minecraft/logs/latest.log
 
 ## Visual/Browser Findings
 - User screenshot shows a Fabric 1.20.1 setup baseline with LWJGL 3 3.3.1, Minecraft 1.20.1, Intermediary Mappings 1.20.1, and Fabric Loader 0.17.2

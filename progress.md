@@ -35,7 +35,7 @@
   - task_plan.md (updated)
 
 ### Phase 4: Bootstrap Plan
-- **Status:** in_progress
+- **Status:** complete
 - Actions taken:
   - Created a monorepo layout with `mod/` for Fabric and `mcp-server/` for the external MCP layer
   - Added Gradle wrapper files, Fabric 1.20.1 build configuration, and mod metadata
@@ -65,6 +65,19 @@
   - mcp-server/src/index.ts (created)
   - mcp-server/test/bridge-config.test.ts (created)
 
+### Phase 5: Delivery
+- **Status:** in_progress
+- Actions taken:
+  - Created a reusable `minecraftclaw-build-guide` skill capturing build and launch pitfalls from the bootstrap session
+  - Validated and packaged the skill into `dist/minecraftclaw-build-guide.skill`
+  - Installed `minecraftclaw-0.1.0.jar` into the PrismLauncher 1.20.1 instance `乌托邦探险之旅3.5fix`
+  - Diagnosed the first launch failure as an unrelated `dynamiccrosshaircompat` client-mod crash
+  - Disabled `dynamiccrosshaircompat` for retest and confirmed `MinecraftClaw initialized` appears in `latest.log`
+- Files created/modified:
+  - skills/minecraftclaw-build-guide/SKILL.md (created)
+  - skills/minecraftclaw-build-guide/references/build-pitfalls.md (created)
+  - dist/minecraftclaw-build-guide.skill (created)
+
 ## Test Results
 | Test | Input | Expected | Actual | Status |
 |------|-------|----------|--------|--------|
@@ -76,6 +89,10 @@
 | Fabric build attempt 1 | `./gradlew :mod:build` | Wrapper runs | Failed because wrapper files were copied to the wrong location | ✓ |
 | Fabric build attempt 2 | `GRADLE_USER_HOME=$PWD/.gradle-home ./gradlew :mod:build` | Build starts | Started after setting a repo-local Gradle home | ✓ |
 | Fabric build attempt 3 | `GRADLE_USER_HOME=$PWD/.gradle-home ./gradlew :mod:build` | Mod compiles | Failed under Java 26 with `Unsupported class file major version 70` | ✓ |
+| Fabric build attempt 4 | `JAVA_HOME="$HOME/Library/Application Support/PrismLauncher/java/java-runtime-gamma" GRADLE_USER_HOME=$PWD/.gradle-home ./gradlew :mod:build --no-daemon` | Mod compiles with Prism Java 17 | Succeeded and produced `minecraftclaw-0.1.0.jar` | ✓ |
+| Skill validation | `quick_validate.py skills/minecraftclaw-build-guide` | Skill validates | `Skill is valid!` | ✓ |
+| Skill packaging | `package_skill.py skills/minecraftclaw-build-guide dist` | `.skill` file produced | Packaged successfully | ✓ |
+| Prism launch retest | Launch `乌托邦探险之旅3.5fix` after disabling `dynamiccrosshaircompat` | MinecraftClaw initializes | `latest.log` contains `MinecraftClaw initialized` | ✓ |
 
 ## Error Log
 | Timestamp | Error | Attempt | Resolution |
@@ -86,15 +103,18 @@
 | 2026-04-04 15:42 | `./gradlew :mod:build` could not find `GradleWrapperMain` | 1 | Moved wrapper jar/properties into `gradle/wrapper/` |
 | 2026-04-04 15:55 | Gradle wrapper download timed out | 1 | Increased wrapper timeout to 120000 |
 | 2026-04-04 16:22 | Gradle failed with `Unsupported class file major version 70` on Java 26 | 1 | Need Java 21 or 17 for Fabric build verification |
+| 2026-04-04 16:27 | Loom repeatedly truncated `client.jar` / `server.jar` downloads | 1 | Seeded the Loom cache manually with verified Mojang jars |
+| 2026-04-04 16:57 | Gradle dependency download for `fastutil-8.5.9.jar` truncated | 1 | Seeded the Gradle cache from PrismLauncher's existing library copy |
+| 2026-04-04 17:03 | Prism client launch crashed after adding MinecraftClaw | 1 | Root cause was `dynamiccrosshaircompat`; moved it to `mods.disabled` and retested |
 
 ## 5-Question Reboot Check
 | Question | Answer |
 |----------|--------|
 | Where am I? | Phase 4 |
-| Where am I going? | Finish JVM-compatible Fabric build verification, then start the localhost bridge and first MCP tool |
+| Where am I going? | Move from launch verification into real localhost bridge and MCP ping implementation |
 | What's the goal? | Validate a Fabric 1.20.1 + MCP MVP path focused on connectivity first |
-| What have I learned? | The architecture is sound, the MCP server scaffold is verified, and the current blocker is the mod build environment needing Java 21 or 17 |
-| What have I done? | Created the workspace, initialized git, ran research, wrote the design, pushed the repo, and scaffolded both the mod and MCP server |
+| What have I learned? | MinecraftClaw itself now builds and loads; the remaining gap is bridge functionality, not Fabric packaging |
+| What have I done? | Created the workspace, built the scaffolds, packaged a build-guide skill, installed the mod into Prism, and verified the mod initializes after removing the unrelated crashing client mod |
 
 ---
 *Update after completing each phase or encountering errors*
