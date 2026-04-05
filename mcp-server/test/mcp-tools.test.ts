@@ -245,6 +245,44 @@ test("createToolHandlers exposes project_local_space as orthographic projection 
   assert.match(readFirstText(result.content), /projection/i);
 });
 
+test("createToolHandlers exposes scan_voxel_slices as non-empty symbolic Y layers", async () => {
+  const handlers = createToolHandlers({
+    getPlayerState: async () => samplePlayer(),
+    getInventory: async () => sampleInventory(),
+    teleportPlayer: async () => samplePlayer(),
+    scanLocalSpace: async () => sampleGroundedBuildSpace(),
+    placeBlock: async () => sampleActionResult("place_block", 1, "minecraft:gold_block"),
+    fillBox: async () => sampleActionResult("fill_box", 8, "minecraft:glass"),
+    runCommand: async () => ({
+      action: "run_command",
+      success: true,
+      dimension: "minecraft:overworld",
+      changedBlocks: 0,
+      command: "time set day",
+      commandResult: 1,
+      message: "Executed command: time set day"
+    })
+  });
+
+  const result = await handlers.scanVoxelSlices({
+    radius: 12,
+    down: 6,
+    up: 12,
+    x1: 202,
+    y1: 70,
+    z1: 92,
+    x2: 214,
+    y2: 76,
+    z2: 102
+  });
+
+  assert.equal(result.isError, false);
+  const slices = (result.structuredContent as { slices?: { summary?: { nonEmptySliceCount?: number }, slices?: Array<{ rows: string[] }> } }).slices;
+  assert.ok((slices?.summary?.nonEmptySliceCount ?? 0) >= 1);
+  assert.ok(slices?.slices?.some((slice) => slice.rows.some((row) => /[SWG]/.test(row))));
+  assert.match(readFirstText(result.content), /slices/i);
+});
+
 test("createToolHandlers exposes plan_build as a grounded build plan with bounds and support metrics", async () => {
   const handlers = createToolHandlers({
     getPlayerState: async () => samplePlayer(),

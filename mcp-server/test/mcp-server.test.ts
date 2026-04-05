@@ -67,6 +67,7 @@ test("createMinecraftClawMcpServer registers sensing, player, and admin world-ac
     "project_local_space",
     "run_command",
     "scan_local_space",
+    "scan_voxel_slices",
     "set_time",
     "set_weather",
     "summon_entity",

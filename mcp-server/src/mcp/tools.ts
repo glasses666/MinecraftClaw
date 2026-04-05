@@ -23,6 +23,7 @@ import { normalizeRuntimeBlueprint, type RuntimeBlueprint } from "../builder/run
 import { projectLocalSpace, type ProjectionBounds } from "./space-projection.js";
 import { buildSiteBrief } from "./site-brief.js";
 import { buildSpaceModel } from "./space-model.js";
+import { buildVoxelSlices, type SliceBounds } from "./voxel-slices.js";
 
 export interface ToolDependencies {
   getPlayerState(): Promise<BridgePlayerState>;
@@ -42,6 +43,7 @@ export interface ToolHandlers {
   analyzeLocalSpace(request: SpaceScanRequest): Promise<CallToolResult>;
   analyzeBuildSite(request: SpaceScanRequest): Promise<CallToolResult>;
   projectLocalSpace(request: ProjectLocalSpaceRequest): Promise<CallToolResult>;
+  scanVoxelSlices(request: ScanVoxelSlicesRequest): Promise<CallToolResult>;
   planBuild(request: PlanBuildRequest): Promise<CallToolResult>;
   previewBlueprint(request: PreviewBlueprintRequest): Promise<CallToolResult>;
   buildStructure(request: BuildStructureRequest): Promise<CallToolResult>;
@@ -104,6 +106,15 @@ interface BuildFromBlueprintRequest extends PreviewBlueprintRequest {
 }
 
 interface ProjectLocalSpaceRequest extends SpaceScanRequest {
+  x1?: number;
+  y1?: number;
+  z1?: number;
+  x2?: number;
+  y2?: number;
+  z2?: number;
+}
+
+interface ScanVoxelSlicesRequest extends SpaceScanRequest {
   x1?: number;
   y1?: number;
   z1?: number;
@@ -262,6 +273,32 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
         };
       } catch (error) {
         return errorResult(`Failed to project local space: ${describeError(error)}`);
+      }
+    },
+
+    async scanVoxelSlices(request) {
+      const normalizedRequest = normalizeVoxelSlicesRequest(request);
+      if (normalizedRequest instanceof Error) {
+        return errorResult(normalizedRequest.message);
+      }
+
+      try {
+        const space = await dependencies.scanLocalSpace(normalizedRequest.scan);
+        const slices = buildVoxelSlices(space, normalizedRequest.focusBounds);
+        return {
+          content: [
+            {
+              type: "text",
+              text: describeVoxelSlices(slices)
+            }
+          ],
+          structuredContent: {
+            slices
+          },
+          isError: false
+        };
+      } catch (error) {
+        return errorResult(`Failed to scan voxel slices: ${describeError(error)}`);
       }
     },
 
@@ -720,6 +757,10 @@ function describeProjection(projection: ReturnType<typeof projectLocalSpace>): s
     `occupied volume with ${projection.summary.occupiedColumns} occupied columns and ${projection.summary.occupiedCells} occupied cells.`;
 }
 
+function describeVoxelSlices(slices: ReturnType<typeof buildVoxelSlices>): string {
+  return `Built ${slices.summary.nonEmptySliceCount} non-empty voxel slices for a ${slices.summary.width}x${slices.summary.depth}x${slices.summary.height} volume.`;
+}
+
 function describeActionResult(result: BridgeActionResult): string {
   return result.message;
 }
@@ -774,6 +815,44 @@ function normalizeProjectLocalSpaceRequest(
 
   if (!bounds.every((value) => Number.isInteger(value))) {
     return new Error("Projection bounds must be integers when provided.");
+  }
+
+  return {
+    scan,
+    focusBounds: {
+      min: {
+        x: Math.min(request.x1!, request.x2!),
+        y: Math.min(request.y1!, request.y2!),
+        z: Math.min(request.z1!, request.z2!)
+      },
+      max: {
+        x: Math.max(request.x1!, request.x2!),
+        y: Math.max(request.y1!, request.y2!),
+        z: Math.max(request.z1!, request.z2!)
+      }
+    }
+  };
+}
+
+function normalizeVoxelSlicesRequest(
+  request: ScanVoxelSlicesRequest
+): {
+  scan: SpaceScanRequest;
+  focusBounds?: SliceBounds;
+} | Error {
+  const scan = normalizeScanRequest(request);
+  if (scan instanceof Error) {
+    return scan;
+  }
+
+  const bounds = [request.x1, request.y1, request.z1, request.x2, request.y2, request.z2];
+  const hasAnyBounds = bounds.some((value) => value !== undefined);
+  if (!hasAnyBounds) {
+    return { scan };
+  }
+
+  if (!bounds.every((value) => Number.isInteger(value))) {
+    return new Error("Voxel slice bounds must be integers when provided.");
   }
 
   return {

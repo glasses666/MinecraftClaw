@@ -167,6 +167,32 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
   );
 
   server.registerTool(
+    "scan_voxel_slices",
+    {
+      title: "Scan Voxel Slices",
+      description: "Reconstruct a small scanned volume into non-empty symbolic Y slices for precise local geometry reasoning.",
+      inputSchema: {
+        radius: z.number().int().min(1).max(20).optional().describe("Horizontal scan radius in blocks around the player. Default: 8."),
+        down: z.number().int().min(1).max(24).optional().describe("How many blocks below the player to include. Default: 8."),
+        up: z.number().int().min(1).max(24).optional().describe("How many blocks above the player to include. Default: 12."),
+        x1: z.number().int().optional().describe("Optional first X bound for the slice focus box."),
+        y1: z.number().int().optional().describe("Optional first Y bound for the slice focus box."),
+        z1: z.number().int().optional().describe("Optional first Z bound for the slice focus box."),
+        x2: z.number().int().optional().describe("Optional second X bound for the slice focus box."),
+        y2: z.number().int().optional().describe("Optional second Y bound for the slice focus box."),
+        z2: z.number().int().optional().describe("Optional second Z bound for the slice focus box.")
+      },
+      annotations: {
+        readOnlyHint: true,
+        idempotentHint: true,
+        openWorldHint: false
+      }
+    },
+    async ({ radius, down, up, x1, y1, z1, x2, y2, z2 }) =>
+      handlers.scanVoxelSlices({ radius, down, up, x1, y1, z1, x2, y2, z2 })
+  );
+
+  server.registerTool(
     "plan_build",
     {
       title: "Plan Build",
