@@ -1,10 +1,11 @@
 # Gemini Site Design And Blueprint Prompts
 
-This file contains three prompt variants for Gemini based on the latest high-resolution MinecraftClaw scan:
+This file contains four prompt variants for Gemini based on the latest high-resolution MinecraftClaw scan:
 
 - `Prompt A`: site-aware design brief generation
 - `Prompt B`: runtime blueprint generation aligned to `build_from_blueprint`
 - `Prompt C`: divergent concept generation with minimal constraints
+- `Prompt D`: single-pass workflow prompt from site reading to final runtime blueprint
 
 The prompts intentionally include world data, symbol legend, slice rules, output schema, and handoff constraints.
 They do not include external design advice beyond raw scan metadata already produced by the MCP pipeline.
@@ -1844,4 +1845,570 @@ SSSSSSSSSSSSSSSSS
 请给出 3 个彼此明显不同的建筑概念，并从中选 1 个最推荐的。
 
 你的输出应该帮助下一阶段把最好的概念再转成蓝图。
+```
+
+---
+
+## Prompt D: Gemini Single-Pass Workflow Prompt
+
+```text
+你是 Minecraft 建筑总设计师兼后端“指挥 agent”。
+
+你的任务不是只做一个阶段，而是一次性完成整个设计流程：
+
+1. 阅读场地数据
+2. 内部发散出多个方向
+3. 选出最适合当前环境的一个方向
+4. 把这个方向收敛成可施工的建筑方案
+5. 最终输出：
+   - 一份简洁但足够有用的设计摘要
+   - 一个可执行的 runtime blueprint JSON
+
+你必须在一次回复里完成全部流程，不要要求用户继续喂第二个 prompt。
+
+==================================================
+工作流要求
+==================================================
+
+你需要在内部遵循这个顺序思考，但最终不要把冗长思维过程全部展开：
+
+阶段 1：Site Reading
+- 判断地形性质
+- 判断高差、边缘、支撑、现有结构痕迹
+- 判断哪里适合建、哪里该避让
+
+阶段 2：Divergence
+- 内部构思至少 3 个明显不同的建筑方向
+- 这些方向必须在体块和地形响应上有差异
+
+阶段 3：Selection
+- 选出 1 个最合适、最不平庸、最贴环境、同时可施工的方向
+
+阶段 4：Convergence
+- 把选中的方向收敛成清晰的建筑方案
+- 明确基础、体块、入口、屋顶、开窗、室内功能
+
+阶段 5：Blueprint
+- 把方案翻译成一个 runtime blueprint JSON
+- 该 JSON 要能被执行 agent 后续拿去 `preview_blueprint` / `build_from_blueprint`
+
+==================================================
+最终输出格式
+==================================================
+
+请严格输出一个 JSON 对象，结构如下：
+
+{
+  "site_summary": {
+    "terrain_character": "...",
+    "build_zone_assumption": "...",
+    "main_constraints": ["...", "..."],
+    "main_opportunities": ["...", "..."]
+  },
+  "concept_candidates": [
+    {
+      "name": "...",
+      "one_line_idea": "..."
+    },
+    {
+      "name": "...",
+      "one_line_idea": "..."
+    },
+    {
+      "name": "...",
+      "one_line_idea": "..."
+    }
+  ],
+  "selected_concept": {
+    "name": "...",
+    "why_selected": "...",
+    "design_intent": "...",
+    "terrain_integration": "...",
+    "key_features": ["...", "...", "..."]
+  },
+  "execution_notes": {
+    "entry_side": "...",
+    "foundation_logic": "...",
+    "roof_logic": "...",
+    "window_logic": "...",
+    "interior_logic": "..."
+  },
+  "runtime_blueprint": {
+    "id": "...",
+    "width": 0,
+    "depth": 0,
+    "height": 0,
+    "steps": []
+  }
+}
+
+重要要求：
+- `concept_candidates` 只要简洁列出 3 个方向，不要铺开长文
+- `selected_concept` 要说明为什么选它
+- `runtime_blueprint` 必须是合法 JSON，不要省略
+- 整个回复必须是单个 JSON 对象
+
+==================================================
+runtime blueprint schema
+==================================================
+
+`runtime_blueprint` 必须满足：
+
+{
+  "id": "string, >= 3 chars",
+  "width": "int, 1..64",
+  "depth": "int, 1..64",
+  "height": "int, 1..64",
+  "steps": [
+    {
+      "kind": "fill",
+      "from": { "x": int, "y": int, "z": int },
+      "to":   { "x": int, "y": int, "z": int },
+      "blockId": "minecraft:block_name"
+    },
+    {
+      "kind": "block",
+      "at": { "x": int, "y": int, "z": int },
+      "blockId": "minecraft:block_name"
+    },
+    {
+      "kind": "command",
+      "commandTemplate": "setblock {x} {y} {z} minecraft:...blockstate...",
+      "offset": { "x": int, "y": int, "z": int }
+    }
+  ]
+}
+
+==================================================
+蓝图硬约束
+==================================================
+
+- 只输出一个单栋住宅，不要做聚落
+- `steps` 不超过 220
+- 优先用 `fill`
+- 门、床、楼梯、灯笼等需要状态的方块优先用 `command`
+- 必须可住，至少有：
+  - 入口
+  - 室内空腔
+  - 床
+  - 储物
+  - 工作块
+  - 光源
+- 必须响应场地
+- 不要退化成普通矩形盒子
+
+==================================================
+场地数据
+==================================================
+
+player_state:
+- dimension: minecraft:overworld
+- block_position: (251, 96, 163)
+- exact_position: (251.5818735111508, 96, 163.92910145698275)
+- yaw: -76.9267
+- pitch: 29.40029
+
+high_resolution_focus_box:
+- x: 243..259
+- y: 88..104
+- z: 155..171
+- size: 17 x 17 x 17
+- crop_mode: focus
+- occupied_cells: 2201
+- non_empty_slices: 17
+
+site_brief:
+- site_kind: mixed
+- elevation_range: 22
+- has_nearby_water: false
+- slope_axis: east_west
+- dominant_surface_blocks:
+  - minecraft:grass_block
+  - natures_spirit:travertine
+  - minecraft:acacia_leaves
+  - minecraft:spruce_planks
+
+==================================================
+符号图例
+==================================================
+
+- `.` = air / empty
+- `S` = stone-like solid
+- `W` = wood-like solid
+- `G` = glass-like
+- `L` = light or fire
+- `F` = furniture / utility / workstation-like block
+- `N` = natural soft block or foliage-like block
+- `M` = miscellaneous solid / uncategorized solid
+
+==================================================
+高分辨率逐层切片
+==================================================
+
+slice_y_104
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_103
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_102
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_101
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_100
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_99
+```text
+................N
+................N
+................N
+................N
+................N
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_98
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+................S
+................S
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_97
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+................S
+................S
+................N
+................N
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_96
+```text
+.................
+.................
+.................
+.................
+................N
+................N
+.........W......N
+.........W.....NS
+.........W.....NS
+.........W.....NS
+.........W.....NS
+.........W......N
+....NN...W......N
+..NNNNN..W.......
+.................
+.................
+.................
+```
+
+slice_y_95
+```text
+.......NNN....NNN
+........N......NN
+..............NNN
+..............NNN
+..............NNS
+.....NNNN.....NNS
+....NNNNNNNNN.NSS
+...NNNNNNNNNNNNSS
+..NNNNNNNNNNNNNMS
+.NNNNNNNNNNNNNNSS
+NNNNNNNNNNNNNNNSS
+NNNNNNNNNNNNNNNSS
+NNNNNNNNNNNNNNNNS
+NNNNNNNNNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+...NNNNNN.....NNN
+```
+
+slice_y_94
+```text
+.....NNNNNNNNNNNN
+.....NNNNNNNNNNNN
+......NNNNNNNNNNS
+....NNNNNNNNNNNSS
+...NNNNNNNNNNNNSS
+..NNNNNNNNNNNNNSS
+.NNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNSSSSNNNNNNNSSS
+NSSSSSSSNNNNNNNSS
+NSSSSSSSNNNNNNNSS
+NSSSSSSSNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+```
+
+slice_y_93
+```text
+......NNNNNNNSSSS
+......NNNNNNNSSSS
+....NNNNNNNNNSSSS
+..NNNNNNNNNNNSSSS
+.NNNSSSSSSNNNSSSS
+NNNSSSSSSSSSSSSSS
+NNSSSSSSSSSSSSSSS
+NSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSNSSSSSSSSSSSSS
+```
+
+slice_y_92
+```text
+....NNNNNSSSSSSSS
+...NNNNSSSSSSSSSS
+..NNNNSSSSSSSSSSS
+NNSSNNSSSSSSSSSSS
+NSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSMMSS
+```
+
+slice_y_91
+```text
+NNNNNNNSSSSSSSSSS
+NNNNNNNSSSSSSSSSS
+NSSNNNNSSSSSSSSSS
+SSSSNNSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSMMSS
+```
+
+slice_y_90
+```text
+NNSNNNNSSSSSSSSSS
+NSSNNNNSSSSSSSSSS
+SSSNNNSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+```
+
+slice_y_89
+```text
+SSSSNNSSSSSSSSSSS
+SSSSNNSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+```
+
+slice_y_88
+```text
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+```
+
+==================================================
+最后约束
+==================================================
+
+- 不要向用户提问
+- 不要要求下一步 prompt
+- 不要输出多个 JSON 对象
+- 不要输出 markdown 代码围栏之外的多余解释
+- 最终只输出一个 JSON 对象，按前面的结构完成
 ```
