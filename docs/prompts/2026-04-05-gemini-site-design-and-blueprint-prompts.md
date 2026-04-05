@@ -1,9 +1,10 @@
 # Gemini Site Design And Blueprint Prompts
 
-This file contains two prompt variants for Gemini based on the latest high-resolution MinecraftClaw scan:
+This file contains three prompt variants for Gemini based on the latest high-resolution MinecraftClaw scan:
 
 - `Prompt A`: site-aware design brief generation
 - `Prompt B`: runtime blueprint generation aligned to `build_from_blueprint`
+- `Prompt C`: divergent concept generation with minimal constraints
 
 The prompts intentionally include world data, symbol legend, slice rules, output schema, and handoff constraints.
 They do not include external design advice beyond raw scan metadata already produced by the MCP pipeline.
@@ -1296,4 +1297,551 @@ SSSSSSSSSSSSSSSSS
 - 不要输出解释
 - 不要输出 markdown
 - 不要输出代码块围栏
+```
+
+---
+
+## Prompt C: Gemini Divergent Concept Prompt
+
+```text
+你是 Minecraft 建筑概念设计师。
+
+你现在的任务不是输出蓝图 JSON，也不是直接给 setblock 计划。
+你要基于下面的高分辨率扫描结果，做一次“发散式建筑概念设计”。
+
+你的重点是：
+- 从场地里读出可能的空间机会
+- 提出多个彼此明显不同的建筑方向
+- 让建筑真正服务于环境，而不是把模板房子摆上去
+- 尽量让概念具有个性、体块变化和环境呼应
+
+你不能假设自己看到了截图。
+你只能依赖下面给出的场地元数据、图例和逐层切片。
+
+==================================================
+你的任务
+==================================================
+
+请基于数据输出 3 个不同方向的建筑概念方案。
+
+每个方案都必须回答：
+- 这是什么类型的房子/建筑
+- 为什么它适合这个场地
+- 它如何顺应地形
+- 它的主视角、主要开口和入口逻辑是什么
+- 它的体块关系是什么
+- 它的基础和屋顶该怎么处理
+- 它会长成什么样，而不是“只是一个盒子”
+
+然后请你从 3 个方案里选出 1 个你最推荐的，并说明推荐理由。
+
+==================================================
+不要做的事
+==================================================
+
+- 不要输出蓝图 JSON
+- 不要输出 setblock 指令
+- 不要把自己锁死在严格的工程步骤里
+- 不要只给“木屋、石屋、现代屋”这种空词
+- 不要给出 3 个本质上只是盒子大小不同的方案
+- 不要为了稳妥而牺牲所有个性
+
+==================================================
+你可以做的事
+==================================================
+
+你可以大胆发散，但必须基于场地。
+
+可以考虑但不限于：
+- 顺坡退台
+- 半嵌式体块
+- 倚石而建
+- 沿边缘展开
+- 桥接两个高差点
+- 厚重基座配轻质上层
+- 单坡屋顶 / 折坡屋顶 / 双体块错层屋顶
+- 观景窗 / 角窗 / 内凹门廊 / 悬挑平台
+- 工坊住宅 / 山脊书屋 / 看守小屋 / 崖边工作室 / 临坡棚屋
+
+==================================================
+输出格式
+==================================================
+
+请按下面格式输出：
+
+{
+  "site_interpretation": {
+    "terrain_character": "...",
+    "main_opportunities": ["...", "...", "..."],
+    "main_constraints": ["...", "...", "..."]
+  },
+  "concepts": [
+    {
+      "name": "...",
+      "type": "...",
+      "core_idea": "...",
+      "terrain_response": "...",
+      "massing": "...",
+      "entry_and_circulation": "...",
+      "roof_and_foundation": "...",
+      "facade_and_openings": "...",
+      "mood_keywords": ["...", "...", "..."]
+    },
+    {
+      "name": "...",
+      "type": "...",
+      "core_idea": "...",
+      "terrain_response": "...",
+      "massing": "...",
+      "entry_and_circulation": "...",
+      "roof_and_foundation": "...",
+      "facade_and_openings": "...",
+      "mood_keywords": ["...", "...", "..."]
+    },
+    {
+      "name": "...",
+      "type": "...",
+      "core_idea": "...",
+      "terrain_response": "...",
+      "massing": "...",
+      "entry_and_circulation": "...",
+      "roof_and_foundation": "...",
+      "facade_and_openings": "...",
+      "mood_keywords": ["...", "...", "..."]
+    }
+  ],
+  "recommended_concept": {
+    "name": "...",
+    "why": "...",
+    "what_makes_it_non_generic": "...",
+    "what_should_be_preserved_in_the_blueprint_stage": ["...", "...", "..."]
+  }
+}
+
+==================================================
+世界数据：扫描上下文
+==================================================
+
+player_state:
+- dimension: minecraft:overworld
+- block_position: (251, 96, 163)
+- exact_position: (251.5818735111508, 96, 163.92910145698275)
+- yaw: -76.9267
+- pitch: 29.40029
+
+high_resolution_focus_box:
+- x: 243..259
+- y: 88..104
+- z: 155..171
+- size: 17 x 17 x 17
+- crop_mode: focus
+- occupied_cells: 2201
+- non_empty_slices: 17
+
+site_brief:
+- site_kind: mixed
+- elevation_range: 22
+- has_nearby_water: false
+- slope_axis: east_west
+- dominant_surface_blocks:
+  - minecraft:grass_block
+  - natures_spirit:travertine
+  - minecraft:acacia_leaves
+  - minecraft:spruce_planks
+
+==================================================
+符号图例
+==================================================
+
+在下面所有切片图中：
+
+- `.` = air / empty
+- `S` = stone-like solid
+- `W` = wood-like solid
+- `G` = glass-like
+- `L` = light or fire
+- `F` = furniture / utility / workstation-like block
+- `N` = natural soft block or foliage-like block
+- `M` = miscellaneous solid / uncategorized solid
+
+==================================================
+高分辨率逐层切片
+==================================================
+
+slice_y_104
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_103
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_102
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_101
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_100
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_99
+```text
+................N
+................N
+................N
+................N
+................N
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_98
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+................S
+................S
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_97
+```text
+.................
+.................
+.................
+.................
+.................
+.................
+.................
+................S
+................S
+................N
+................N
+.................
+.................
+.................
+.................
+.................
+.................
+```
+
+slice_y_96
+```text
+.................
+.................
+.................
+.................
+................N
+................N
+.........W......N
+.........W.....NS
+.........W.....NS
+.........W.....NS
+.........W.....NS
+.........W......N
+....NN...W......N
+..NNNNN..W.......
+.................
+.................
+.................
+```
+
+slice_y_95
+```text
+.......NNN....NNN
+........N......NN
+..............NNN
+..............NNN
+..............NNS
+.....NNNN.....NNS
+....NNNNNNNNN.NSS
+...NNNNNNNNNNNNSS
+..NNNNNNNNNNNNNMS
+.NNNNNNNNNNNNNNSS
+NNNNNNNNNNNNNNNSS
+NNNNNNNNNNNNNNNSS
+NNNNNNNNNNNNNNNNS
+NNNNNNNNNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+...NNNNNN.....NNN
+```
+
+slice_y_94
+```text
+.....NNNNNNNNNNNN
+.....NNNNNNNNNNNN
+......NNNNNNNNNNS
+....NNNNNNNNNNNSS
+...NNNNNNNNNNNNSS
+..NNNNNNNNNNNNNSS
+.NNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNNNNNNNNNNNNSSS
+NNNSSSSNNNNNNNSSS
+NSSSSSSSNNNNNNNSS
+NSSSSSSSNNNNNNNSS
+NSSSSSSSNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+NNNNNNNNNNNNNNNNN
+```
+
+slice_y_93
+```text
+......NNNNNNNSSSS
+......NNNNNNNSSSS
+....NNNNNNNNNSSSS
+..NNNNNNNNNNNSSSS
+.NNNSSSSSSNNNSSSS
+NNNSSSSSSSSSSSSSS
+NNSSSSSSSSSSSSSSS
+NSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSNSSSSSSSSSSSSS
+```
+
+slice_y_92
+```text
+....NNNNNSSSSSSSS
+...NNNNSSSSSSSSSS
+..NNNNSSSSSSSSSSS
+NNSSNNSSSSSSSSSSS
+NSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSMMSS
+```
+
+slice_y_91
+```text
+NNNNNNNSSSSSSSSSS
+NNNNNNNSSSSSSSSSS
+NSSNNNNSSSSSSSSSS
+SSSSNNSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSMMSS
+```
+
+slice_y_90
+```text
+NNSNNNNSSSSSSSSSS
+NSSNNNNSSSSSSSSSS
+SSSNNNSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+```
+
+slice_y_89
+```text
+SSSSNNSSSSSSSSSSS
+SSSSNNSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+```
+
+slice_y_88
+```text
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+SSSSSSSSSSSSSSSSS
+```
+
+==================================================
+阅读提示
+==================================================
+
+你可以从这些数据里自由推断，但不要把自己限制死在某种唯一解上。
+
+特别注意：
+- 高层几乎为空，说明上方空间开阔
+- 中上层出现零散 `N`、少量 `S` 与一条 `W`，说明局部已有自然边缘与少量人工痕迹
+- 中下层 `N -> S` 的过渡明显，说明这是一个带坡度、带石质基底的复合地形
+- 下层连续 `S` 很厚，意味着基座、贴坡或半嵌式方案都有机会成立
+
+==================================================
+最终要求
+==================================================
+
+请给出 3 个彼此明显不同的建筑概念，并从中选 1 个最推荐的。
+
+你的输出应该帮助下一阶段把最好的概念再转成蓝图。
 ```
