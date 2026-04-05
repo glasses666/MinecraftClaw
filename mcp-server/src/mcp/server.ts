@@ -180,7 +180,8 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
         z1: z.number().int().optional().describe("Optional first Z bound for the slice focus box."),
         x2: z.number().int().optional().describe("Optional second X bound for the slice focus box."),
         y2: z.number().int().optional().describe("Optional second Y bound for the slice focus box."),
-        z2: z.number().int().optional().describe("Optional second Z bound for the slice focus box.")
+        z2: z.number().int().optional().describe("Optional second Z bound for the slice focus box."),
+        cropMode: z.enum(["occupied", "focus"]).optional().describe("Whether to crop to occupied voxels or preserve the full focus box. Defaults to occupied.")
       },
       annotations: {
         readOnlyHint: true,
@@ -188,8 +189,8 @@ export function createMinecraftClawMcpServer(dependencies: ToolDependencies): Mc
         openWorldHint: false
       }
     },
-    async ({ radius, down, up, x1, y1, z1, x2, y2, z2 }) =>
-      handlers.scanVoxelSlices({ radius, down, up, x1, y1, z1, x2, y2, z2 })
+    async ({ radius, down, up, x1, y1, z1, x2, y2, z2, cropMode }) =>
+      handlers.scanVoxelSlices({ radius, down, up, x1, y1, z1, x2, y2, z2, cropMode })
   );
 
   server.registerTool(

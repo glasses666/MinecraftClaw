@@ -23,7 +23,7 @@ import { normalizeRuntimeBlueprint, type RuntimeBlueprint } from "../builder/run
 import { projectLocalSpace, type ProjectionBounds } from "./space-projection.js";
 import { buildSiteBrief } from "./site-brief.js";
 import { buildSpaceModel } from "./space-model.js";
-import { buildVoxelSlices, type SliceBounds } from "./voxel-slices.js";
+import { buildVoxelSlices, type SliceBounds, type SliceCropMode } from "./voxel-slices.js";
 
 export interface ToolDependencies {
   getPlayerState(): Promise<BridgePlayerState>;
@@ -121,6 +121,7 @@ interface ScanVoxelSlicesRequest extends SpaceScanRequest {
   x2?: number;
   y2?: number;
   z2?: number;
+  cropMode?: SliceCropMode;
 }
 
 export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers {
@@ -284,7 +285,7 @@ export function createToolHandlers(dependencies: ToolDependencies): ToolHandlers
 
       try {
         const space = await dependencies.scanLocalSpace(normalizedRequest.scan);
-        const slices = buildVoxelSlices(space, normalizedRequest.focusBounds);
+        const slices = buildVoxelSlices(space, normalizedRequest.focusBounds, normalizedRequest.cropMode);
         return {
           content: [
             {
@@ -839,16 +840,22 @@ function normalizeVoxelSlicesRequest(
 ): {
   scan: SpaceScanRequest;
   focusBounds?: SliceBounds;
+  cropMode: SliceCropMode;
 } | Error {
   const scan = normalizeScanRequest(request);
   if (scan instanceof Error) {
     return scan;
   }
 
+  const cropMode = normalizeSliceCropMode(request.cropMode);
+  if (cropMode instanceof Error) {
+    return cropMode;
+  }
+
   const bounds = [request.x1, request.y1, request.z1, request.x2, request.y2, request.z2];
   const hasAnyBounds = bounds.some((value) => value !== undefined);
   if (!hasAnyBounds) {
-    return { scan };
+    return { scan, cropMode };
   }
 
   if (!bounds.every((value) => Number.isInteger(value))) {
@@ -857,6 +864,7 @@ function normalizeVoxelSlicesRequest(
 
   return {
     scan,
+    cropMode,
     focusBounds: {
       min: {
         x: Math.min(request.x1!, request.x2!),
@@ -870,6 +878,18 @@ function normalizeVoxelSlicesRequest(
       }
     }
   };
+}
+
+function normalizeSliceCropMode(value: unknown): SliceCropMode | Error {
+  if (value === undefined) {
+    return "occupied";
+  }
+
+  if (value === "occupied" || value === "focus") {
+    return value;
+  }
+
+  return new Error("cropMode must be either 'occupied' or 'focus'.");
 }
 
 function normalizePlanBuildRequest(

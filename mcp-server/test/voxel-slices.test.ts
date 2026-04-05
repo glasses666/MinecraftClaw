@@ -16,6 +16,23 @@ test("buildVoxelSlices reconstructs non-empty Y layers from occupied runs", () =
   assert.ok(slices.slices.some((slice) => slice.rows.some((row) => row.includes("S"))));
 });
 
+test("buildVoxelSlices preserves the full focus box when cropMode is focus", () => {
+  const slices = buildVoxelSlices(
+    sampleVoxelSpace(),
+    {
+      min: { x: 0, y: 64, z: 0 },
+      max: { x: 3, y: 68, z: 3 }
+    },
+    "focus"
+  );
+
+  assert.equal(slices.summary.width, 3);
+  assert.equal(slices.summary.depth, 3);
+  assert.equal(slices.summary.height, 4);
+  assert.equal(slices.summary.nonEmptySliceCount, 4);
+  assert.equal(slices.slices[0]?.rows[0]?.length, 3);
+});
+
 function sampleVoxelSpace() {
   return {
     schemaVersion: 1,

@@ -10,6 +10,8 @@ export interface VoxelSlice {
   rows: string[];
 }
 
+export type SliceCropMode = "occupied" | "focus";
+
 export interface LocalSpaceVoxelSlices {
   schemaVersion: number;
   sourceSpaceSchemaVersion: number;
@@ -28,7 +30,8 @@ export interface LocalSpaceVoxelSlices {
 
 export function buildVoxelSlices(
   space: LocalSpaceSnapshot,
-  focusBounds?: SliceBounds
+  focusBounds?: SliceBounds,
+  cropMode: SliceCropMode = "occupied"
 ): LocalSpaceVoxelSlices {
   const focus = clampBounds(focusBounds ?? space.bounds, space.bounds);
   const voxels = new Map<string, string>();
@@ -53,7 +56,7 @@ export function buildVoxelSlices(
     }
   }
 
-  const bounds = occupiedBounds ?? focus;
+  const bounds = cropMode === "focus" ? focus : occupiedBounds ?? focus;
   const slices: VoxelSlice[] = [];
 
   for (let y = bounds.max.y; y >= bounds.min.y; y -= 1) {
@@ -73,7 +76,7 @@ export function buildVoxelSlices(
       rows.push(row);
     }
 
-    if (occupiedCells > 0) {
+    if (occupiedCells > 0 || cropMode === "focus") {
       slices.push({ y, rows });
     }
   }

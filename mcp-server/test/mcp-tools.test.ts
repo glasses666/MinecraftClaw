@@ -273,12 +273,19 @@ test("createToolHandlers exposes scan_voxel_slices as non-empty symbolic Y layer
     z1: 92,
     x2: 214,
     y2: 76,
-    z2: 102
+    z2: 102,
+    cropMode: "focus"
   });
 
   assert.equal(result.isError, false);
-  const slices = (result.structuredContent as { slices?: { summary?: { nonEmptySliceCount?: number }, slices?: Array<{ rows: string[] }> } }).slices;
+  const slices = (result.structuredContent as {
+    slices?: {
+      summary?: { nonEmptySliceCount?: number; width?: number };
+      slices?: Array<{ rows: string[] }>;
+    }
+  }).slices;
   assert.ok((slices?.summary?.nonEmptySliceCount ?? 0) >= 1);
+  assert.ok((slices?.summary?.width ?? 0) >= 10);
   assert.ok(slices?.slices?.some((slice) => slice.rows.some((row) => /[SWG]/.test(row))));
   assert.match(readFirstText(result.content), /slices/i);
 });
