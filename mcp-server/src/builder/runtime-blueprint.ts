@@ -43,5 +43,56 @@ export function normalizeRuntimeBlueprint(input: unknown): RuntimeBlueprint | Er
     return new Error(`Invalid runtime blueprint: ${detail}`);
   }
 
-  return parsed.data;
+  const blueprint = parsed.data;
+
+  for (const step of blueprint.steps) {
+    if (step.kind === "fill") {
+      if (!isWithinBounds(step.from, blueprint) || !isWithinBounds(step.to, blueprint)) {
+        return new Error(`Invalid runtime blueprint: fill step exceeds declared bounds for ${blueprint.id}`);
+      }
+      continue;
+    }
+
+    if (step.kind === "block") {
+      if (!isWithinBounds(step.at, blueprint)) {
+        return new Error(`Invalid runtime blueprint: block step exceeds declared bounds for ${blueprint.id}`);
+      }
+      continue;
+    }
+
+    if (!isWithinBounds(step.offset, blueprint)) {
+      return new Error(`Invalid runtime blueprint: command step exceeds declared bounds for ${blueprint.id}`);
+    }
+
+    if (!isSafeCommandTemplate(step.commandTemplate)) {
+      return new Error(`Invalid runtime blueprint: unsafe command template for ${blueprint.id}`);
+    }
+  }
+
+  return blueprint;
+}
+
+function isWithinBounds(
+  position: { x: number; y: number; z: number },
+  blueprint: RuntimeBlueprint
+): boolean {
+  return (
+    position.x >= 0 &&
+    position.x < blueprint.width &&
+    position.y >= 0 &&
+    position.y < blueprint.height &&
+    position.z >= 0 &&
+    position.z < blueprint.depth
+  );
+}
+
+function isSafeCommandTemplate(commandTemplate: string): boolean {
+  const normalized = commandTemplate.trim().toLowerCase();
+
+  if (!normalized.startsWith("setblock ")) {
+    return false;
+  }
+
+  const forbiddenFragments = ["fill ", "clone ", "execute ", "summon ", "tp ", "kill ", "function ", "data "];
+  return !forbiddenFragments.some((fragment) => normalized.includes(fragment));
 }

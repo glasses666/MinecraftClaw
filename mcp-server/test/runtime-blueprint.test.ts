@@ -12,6 +12,39 @@ test("normalizeRuntimeBlueprint accepts a valid runtime blueprint object", () =>
   assert.equal(result.steps.length, 8);
 });
 
+test("normalizeRuntimeBlueprint rejects fill steps that exceed declared bounds", () => {
+  const result = normalizeRuntimeBlueprint({
+    ...sampleRuntimeBlueprint(),
+    steps: [
+      {
+        kind: "fill",
+        from: { x: 0, y: 0, z: 0 },
+        to: { x: 5, y: 0, z: 5 },
+        blockId: "minecraft:stone"
+      }
+    ]
+  });
+
+  assert.ok(result instanceof Error);
+  assert.match(result.message, /bounds/i);
+});
+
+test("normalizeRuntimeBlueprint rejects unsafe command templates", () => {
+  const result = normalizeRuntimeBlueprint({
+    ...sampleRuntimeBlueprint(),
+    steps: [
+      {
+        kind: "command",
+        commandTemplate: "fill {x} {y} {z} {x} {y} {z} minecraft:stone",
+        offset: { x: 1, y: 1, z: 1 }
+      }
+    ]
+  });
+
+  assert.ok(result instanceof Error);
+  assert.match(result.message, /unsafe command/i);
+});
+
 test("planBlueprintBuild plans a grounded build from a runtime blueprint without library registration", () => {
   const blueprint = normalizeRuntimeBlueprint(sampleRuntimeBlueprint());
   assert.ok(!(blueprint instanceof Error));

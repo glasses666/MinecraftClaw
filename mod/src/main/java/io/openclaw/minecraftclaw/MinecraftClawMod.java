@@ -23,6 +23,7 @@ public final class MinecraftClawMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		MinecraftClawItems.initialize();
 		CommandRegistrationCallback.EVENT.register(MinecraftClawCommands::register);
 		ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> bootstrapRawExport(handler.getPlayer()));
 		ServerLifecycleEvents.SERVER_STARTED.register(MinecraftClawMod::startBridge);

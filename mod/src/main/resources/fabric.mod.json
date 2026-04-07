@@ -15,6 +15,9 @@
   "entrypoints": {
     "main": [
       "io.openclaw.minecraftclaw.MinecraftClawMod"
+    ],
+    "client": [
+      "io.openclaw.minecraftclaw.client.MinecraftClawClientMod"
     ]
   },
   "depends": {
