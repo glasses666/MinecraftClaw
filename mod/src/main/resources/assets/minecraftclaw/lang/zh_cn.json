@@ -1,5 +1,9 @@
 {
   "item.minecraftclaw.aether_architects_wand": "以太营造法杖",
   "key.categories.minecraftclaw": "MinecraftClaw",
-  "key.minecraftclaw.allow_air_selection": "允许选择空气方块"
+  "key.minecraftclaw.allow_air_selection": "允许选择空气方块",
+  "key.minecraftclaw.open_design_screen": "打开设计界面",
+  "key.minecraftclaw.preview_candidate_1": "预览候选 1",
+  "key.minecraftclaw.preview_candidate_2": "预览候选 2",
+  "key.minecraftclaw.preview_candidate_3": "预览候选 3"
 }

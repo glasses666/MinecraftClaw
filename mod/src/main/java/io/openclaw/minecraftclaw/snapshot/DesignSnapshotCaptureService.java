@@ -43,6 +43,14 @@ public final class DesignSnapshotCaptureService {
 		MinecraftClient client,
 		SelectionState selectionState
 	) throws IOException {
+		return prepareCapture(client, selectionState, new DesignPromptContext("", "", "", 3));
+	}
+
+	public static PreparedDesignSnapshotCapture prepareCapture(
+		MinecraftClient client,
+		SelectionState selectionState,
+		DesignPromptContext promptContext
+	) throws IOException {
 		ClientPlayerEntity player = requirePlayer(client);
 		ClientWorld world = requireWorld(client);
 		SelectionVolume selection = selectionState.currentSelection()
@@ -63,7 +71,7 @@ public final class DesignSnapshotCaptureService {
 		DesignSnapshot snapshot = new DesignSnapshot(
 			snapshotId,
 			selection,
-			new DesignPromptContext("", "", "", 3),
+			promptContext,
 			new DesignSpaceContext(slices, paletteMapper.legend()),
 			new EnvironmentViews(captureEnvironmentViews(world, selection, paletteMapper)),
 			new PlayerDesignContext(resolveGameMode(client.interactionManager), captureInventory(player)),

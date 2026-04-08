@@ -1,18 +1,19 @@
 package io.openclaw.minecraftclaw.client;
 
 public final class SnapshotCaptureScheduler {
-	private boolean pendingCapture;
+	private SnapshotCaptureRequest pendingCapture;
 
-	public void requestCapture() {
-		pendingCapture = true;
+	public void requestCapture(SnapshotCaptureRequest request) {
+		pendingCapture = request;
 	}
 
-	public boolean consumePendingCapture() {
-		if (!pendingCapture) {
-			return false;
+	public SnapshotCaptureRequest consumePendingCapture() {
+		if (pendingCapture == null) {
+			return null;
 		}
 
-		pendingCapture = false;
-		return true;
+		SnapshotCaptureRequest request = pendingCapture;
+		pendingCapture = null;
+		return request;
 	}
 }
