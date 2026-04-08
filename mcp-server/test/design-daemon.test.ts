@@ -14,8 +14,9 @@ test("loadDesignSnapshot reads a request.json plus referenced context files", as
   assert.equal(snapshot.request.snapshotId, "snap_test_01");
   assert.equal(snapshot.request.selection.dimensions.width, 12);
   assert.equal(snapshot.spaceContext.slices.length, 2);
-  assert.equal(snapshot.environmentViews.views.length, 4);
+  assert.equal(snapshot.environmentViews.views.length, 5);
   assert.equal(snapshot.environmentViews.views[0]?.imageFile, "environment-north.png");
+  assert.equal(snapshot.environmentViews.views[4]?.imageFile, "environment-top-down.png");
   assert.equal(snapshot.gameContext.mods[0]?.id, "minecraft");
 });
 
@@ -105,7 +106,8 @@ async function createSnapshotFixture() {
           { direction: "north", summary: "open sky and distant water", imageFile: "environment-north.png" },
           { direction: "east", summary: "rocky slope", imageFile: "environment-east.png" },
           { direction: "south", summary: "forest edge", imageFile: "environment-south.png" },
-          { direction: "west", summary: "grassy drop", imageFile: "environment-west.png" }
+          { direction: "west", summary: "grassy drop", imageFile: "environment-west.png" },
+          { direction: "top-down", summary: "selection footprint overview", imageFile: "environment-top-down.png" }
         ]
       },
       null,
