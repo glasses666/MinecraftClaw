@@ -52,6 +52,15 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 				return ActionResult.PASS;
 			}
 
+			WandInteractionPlanner.BlockUseIntent blockUseIntent = WandInteractionPlanner.resolveBlockUseIntent(
+				player.isSneaking(),
+				SELECTION_STATE.currentSelection().isPresent()
+			);
+			if (blockUseIntent == WandInteractionPlanner.BlockUseIntent.CAPTURE_SNAPSHOT) {
+				captureSnapshot(player);
+				return ActionResult.FAIL;
+			}
+
 			BlockPos pos = hitResult.getBlockPos();
 			SELECTION_STATE.setSecondCorner(pos);
 			player.sendMessage(Text.literal("MinecraftClaw: second corner set to " + formatPos(pos)), false);
@@ -85,16 +94,8 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 				return TypedActionResult.pass(stack);
 			}
 
-			MinecraftClient client = MinecraftClient.getInstance();
-			try {
-				var paths = DesignSnapshotCaptureService.capture(client, SELECTION_STATE);
-				SELECTION_STATE.setLastSnapshotId(paths.snapshotDirectory().getFileName().toString());
-				player.sendMessage(Text.literal("MinecraftClaw: design snapshot written to " + paths.snapshotDirectory()), false);
-				return TypedActionResult.fail(stack);
-			} catch (Exception exception) {
-				player.sendMessage(Text.literal("MinecraftClaw: snapshot capture failed: " + exception.getMessage()), false);
-				return TypedActionResult.fail(stack);
-			}
+			captureSnapshot(player);
+			return TypedActionResult.fail(stack);
 		});
 
 		WorldRenderEvents.LAST.register(MinecraftClawClientMod::renderSelectionFrame);
@@ -118,5 +119,16 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 
 	private static String formatPos(BlockPos pos) {
 		return pos.getX() + "," + pos.getY() + "," + pos.getZ();
+	}
+
+	private static void captureSnapshot(net.minecraft.entity.player.PlayerEntity player) {
+		MinecraftClient client = MinecraftClient.getInstance();
+		try {
+			var paths = DesignSnapshotCaptureService.capture(client, SELECTION_STATE);
+			SELECTION_STATE.setLastSnapshotId(paths.snapshotDirectory().getFileName().toString());
+			player.sendMessage(Text.literal("MinecraftClaw: design snapshot written to " + paths.snapshotDirectory()), false);
+		} catch (Exception exception) {
+			player.sendMessage(Text.literal("MinecraftClaw: snapshot capture failed: " + exception.getMessage()), false);
+		}
 	}
 }
