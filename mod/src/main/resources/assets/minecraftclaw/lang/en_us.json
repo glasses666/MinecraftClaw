@@ -1,3 +1,5 @@
 {
-  "item.minecraftclaw.aether_architects_wand": "Aether Architect's Wand"
+  "item.minecraftclaw.aether_architects_wand": "Aether Architect's Wand",
+  "key.categories.minecraftclaw": "MinecraftClaw",
+  "key.minecraftclaw.allow_air_selection": "Allow Air Selection"
 }

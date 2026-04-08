@@ -1,3 +1,5 @@
 {
-  "item.minecraftclaw.aether_architects_wand": "以太营造法杖"
+  "item.minecraftclaw.aether_architects_wand": "以太营造法杖",
+  "key.categories.minecraftclaw": "MinecraftClaw",
+  "key.minecraftclaw.allow_air_selection": "允许选择空气方块"
 }
