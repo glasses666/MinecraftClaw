@@ -4,6 +4,7 @@ import io.openclaw.minecraftclaw.client.SelectionState;
 import io.openclaw.minecraftclaw.selection.SelectionLimits;
 import io.openclaw.minecraftclaw.selection.SelectionVolume;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -18,8 +19,13 @@ import java.util.Optional;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.SimpleFramebuffer;
 import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.util.ScreenshotRecorder;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
@@ -32,6 +38,8 @@ import net.minecraft.util.math.BlockPos;
 public final class DesignSnapshotCaptureService {
 	private static final DateTimeFormatter SNAPSHOT_TIMESTAMP =
 		DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC);
+	private static final int ENVIRONMENT_SCREENSHOT_WIDTH = 480;
+	private static final int ENVIRONMENT_SCREENSHOT_HEIGHT = 270;
 
 	private DesignSnapshotCaptureService() {
 	}
@@ -48,6 +56,9 @@ public final class DesignSnapshotCaptureService {
 		}
 
 		String snapshotId = SNAPSHOT_TIMESTAMP.format(Instant.now()) + "-" + sanitizePlayerName(player.getName().getString());
+		Path root = client.runDirectory.toPath().resolve("minecraftclaw").resolve("design-snapshots");
+		Path snapshotDirectory = root.resolve(snapshotId);
+		Files.createDirectories(snapshotDirectory);
 		PaletteMapper paletteMapper = new PaletteMapper();
 		List<DesignSlice> slices = captureSlices(world, selection, paletteMapper);
 
@@ -56,13 +67,12 @@ public final class DesignSnapshotCaptureService {
 			selection,
 			new DesignPromptContext("", "", "", 3),
 			new DesignSpaceContext(slices, paletteMapper.legend()),
-			new EnvironmentViews(captureEnvironmentViews(world, selection, paletteMapper)),
+			new EnvironmentViews(captureEnvironmentViews(client, world, selection, paletteMapper, snapshotDirectory)),
 			new PlayerDesignContext(resolveGameMode(client.interactionManager), captureInventory(player)),
 			new GameDesignContext(SharedConstants.getGameVersion().getName(), captureMods()),
 			new PaletteCatalog(capturePaletteCatalog())
 		);
 
-		Path root = client.runDirectory.toPath().resolve("minecraftclaw").resolve("design-snapshots");
 		return DesignSnapshotWriter.write(root, snapshot);
 	}
 
@@ -86,22 +96,26 @@ public final class DesignSnapshotCaptureService {
 	}
 
 	private static List<EnvironmentView> captureEnvironmentViews(
+		MinecraftClient client,
 		ClientWorld world,
 		SelectionVolume selection,
-		PaletteMapper paletteMapper
+		PaletteMapper paletteMapper,
+		Path snapshotDirectory
 	) {
 		return List.of(
-			captureDirectionalView(world, selection, paletteMapper, "north", 0, -1),
-			captureDirectionalView(world, selection, paletteMapper, "east", 1, 0),
-			captureDirectionalView(world, selection, paletteMapper, "south", 0, 1),
-			captureDirectionalView(world, selection, paletteMapper, "west", -1, 0)
+			captureDirectionalView(client, world, selection, paletteMapper, snapshotDirectory, "north", 0, -1),
+			captureDirectionalView(client, world, selection, paletteMapper, snapshotDirectory, "east", 1, 0),
+			captureDirectionalView(client, world, selection, paletteMapper, snapshotDirectory, "south", 0, 1),
+			captureDirectionalView(client, world, selection, paletteMapper, snapshotDirectory, "west", -1, 0)
 		);
 	}
 
 	private static EnvironmentView captureDirectionalView(
+		MinecraftClient client,
 		ClientWorld world,
 		SelectionVolume selection,
 		PaletteMapper paletteMapper,
+		Path snapshotDirectory,
 		String direction,
 		int stepX,
 		int stepZ
@@ -142,11 +156,92 @@ public final class DesignSnapshotCaptureService {
 			.map(Map.Entry::getKey)
 			.reduce((left, right) -> left + ", " + right)
 			.orElse(".");
+		String imageFile = captureEnvironmentScreenshot(client, snapshotDirectory, direction);
 
 		return new EnvironmentView(
 			direction,
-			"dominant tokens: " + dominant + "; openness score: " + openness
+			"dominant tokens: " + dominant + "; openness score: " + openness,
+			imageFile
 		);
+	}
+
+	private static String captureEnvironmentScreenshot(MinecraftClient client, Path snapshotDirectory, String direction) {
+		ClientPlayerEntity player = requirePlayer(client);
+		Window window = client.getWindow();
+		int originalFramebufferWidth = window.getFramebufferWidth();
+		int originalFramebufferHeight = window.getFramebufferHeight();
+		float originalPitch = player.getPitch();
+		float originalYaw = player.getYaw();
+		float originalPrevPitch = player.prevPitch;
+		float originalPrevYaw = player.prevYaw;
+		float originalHeadYaw = player.getHeadYaw();
+		float originalBodyYaw = player.getBodyYaw();
+		String imageFile = "environment-" + direction + ".png";
+		Path imagePath = snapshotDirectory.resolve(imageFile);
+
+		SimpleFramebuffer framebuffer = new SimpleFramebuffer(
+			ENVIRONMENT_SCREENSHOT_WIDTH,
+			ENVIRONMENT_SCREENSHOT_HEIGHT,
+			true,
+			MinecraftClient.IS_SYSTEM_MAC
+		);
+
+		try {
+			float yaw = yawForDirection(direction);
+			client.gameRenderer.setBlockOutlineEnabled(false);
+			client.gameRenderer.setRenderingPanorama(true);
+			client.worldRenderer.reloadTransparencyPostProcessor();
+			window.setFramebufferWidth(ENVIRONMENT_SCREENSHOT_WIDTH);
+			window.setFramebufferHeight(ENVIRONMENT_SCREENSHOT_HEIGHT);
+
+			player.setYaw(yaw);
+			player.setPitch(0.0F);
+			player.prevYaw = yaw;
+			player.prevPitch = 0.0F;
+			player.setHeadYaw(yaw);
+			player.setBodyYaw(yaw);
+
+			framebuffer.beginWrite(true);
+			client.gameRenderer.renderWorld(1.0F, 0L, new MatrixStack());
+
+			try {
+				Thread.sleep(10L);
+			} catch (InterruptedException exception) {
+				Thread.currentThread().interrupt();
+			}
+
+			try (NativeImage image = ScreenshotRecorder.takeScreenshot(framebuffer)) {
+				image.writeTo(imagePath);
+			}
+			return imageFile;
+		} catch (IOException exception) {
+			throw new IllegalStateException("Failed to write " + direction + " environment screenshot.", exception);
+		} finally {
+			player.setPitch(originalPitch);
+			player.setYaw(originalYaw);
+			player.prevPitch = originalPrevPitch;
+			player.prevYaw = originalPrevYaw;
+			player.setHeadYaw(originalHeadYaw);
+			player.setBodyYaw(originalBodyYaw);
+
+			window.setFramebufferWidth(originalFramebufferWidth);
+			window.setFramebufferHeight(originalFramebufferHeight);
+			framebuffer.delete();
+			client.gameRenderer.setRenderingPanorama(false);
+			client.worldRenderer.reloadTransparencyPostProcessor();
+			client.getFramebuffer().beginWrite(true);
+			client.gameRenderer.setBlockOutlineEnabled(true);
+		}
+	}
+
+	private static float yawForDirection(String direction) {
+		return switch (direction) {
+			case "north" -> 180.0F;
+			case "east" -> 270.0F;
+			case "south" -> 0.0F;
+			case "west" -> 90.0F;
+			default -> 0.0F;
+		};
 	}
 
 	private static int highestOccupiedY(ClientWorld world, int x, int z, int topY, int bottomY) {
