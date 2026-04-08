@@ -6,10 +6,10 @@ import org.junit.jupiter.api.Test;
 
 class WandInteractionPlannerTest {
 	@Test
-	void blockUseSetsSecondCornerByDefault() {
+	void blockUseRequiresFirstCornerBeforeSettingSecondCorner() {
 		assertEquals(
-			WandInteractionPlanner.BlockUseIntent.SET_SECOND_CORNER,
-			WandInteractionPlanner.resolveBlockUseIntent(false, false)
+			WandInteractionPlanner.BlockUseIntent.REQUIRE_FIRST_CORNER,
+			WandInteractionPlanner.resolveBlockUseIntent(false, false, false)
 		);
 	}
 
@@ -17,7 +17,15 @@ class WandInteractionPlannerTest {
 	void blockUseCapturesSnapshotWhenSneakingWithActiveSelection() {
 		assertEquals(
 			WandInteractionPlanner.BlockUseIntent.CAPTURE_SNAPSHOT,
-			WandInteractionPlanner.resolveBlockUseIntent(true, true)
+			WandInteractionPlanner.resolveBlockUseIntent(true, true, true)
+		);
+	}
+
+	@Test
+	void blockUseSetsSecondCornerWhenFirstCornerExists() {
+		assertEquals(
+			WandInteractionPlanner.BlockUseIntent.SET_SECOND_CORNER,
+			WandInteractionPlanner.resolveBlockUseIntent(false, true, false)
 		);
 	}
 
@@ -25,7 +33,7 @@ class WandInteractionPlannerTest {
 	void blockUseStillSetsSecondCornerWhenSneakingWithoutCompleteSelection() {
 		assertEquals(
 			WandInteractionPlanner.BlockUseIntent.SET_SECOND_CORNER,
-			WandInteractionPlanner.resolveBlockUseIntent(true, false)
+			WandInteractionPlanner.resolveBlockUseIntent(true, true, false)
 		);
 	}
 }

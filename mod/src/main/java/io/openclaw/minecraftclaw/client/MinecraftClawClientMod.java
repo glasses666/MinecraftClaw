@@ -85,10 +85,15 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 
 			WandInteractionPlanner.BlockUseIntent blockUseIntent = WandInteractionPlanner.resolveBlockUseIntent(
 				player.isSneaking(),
+				SELECTION_STATE.firstCorner().isPresent(),
 				SELECTION_STATE.currentSelection().isPresent()
 			);
 			if (blockUseIntent == WandInteractionPlanner.BlockUseIntent.CAPTURE_SNAPSHOT) {
 				requestSnapshotCapture();
+				return ActionResult.FAIL;
+			}
+			if (blockUseIntent == WandInteractionPlanner.BlockUseIntent.REQUIRE_FIRST_CORNER) {
+				player.sendMessage(Text.literal("MinecraftClaw: set the first corner before setting the second corner."), false);
 				return ActionResult.FAIL;
 			}
 
