@@ -25,6 +25,16 @@ export interface DesignDaemonServerOptions {
 export function createDesignDaemonServer(options: DesignDaemonServerOptions): Server {
   return createServer(async (request, response) => {
     try {
+      if (request.method === "GET" && request.url === "/health") {
+        if (!hasBearerToken(request, options.token)) {
+          writeJson(response, 401, { error: "unauthorized" });
+          return;
+        }
+
+        writeJson(response, 200, { status: "ok" });
+        return;
+      }
+
       if (request.method !== "POST" || request.url !== "/design/generate") {
         writeJson(response, 404, { error: "not_found" });
         return;

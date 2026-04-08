@@ -35,6 +35,30 @@ test("design daemon rejects generate requests without a matching bearer token", 
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
 
+test("design daemon exposes a token-protected health endpoint", async () => {
+  const server = createDesignDaemonServer({
+    token: "test-token"
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address !== null && typeof address !== "string");
+
+  const unauthorized = await fetch(`http://127.0.0.1:${(address as AddressInfo).port}/health`);
+  assert.equal(unauthorized.status, 401);
+
+  const authorized = await fetch(`http://127.0.0.1:${(address as AddressInfo).port}/health`, {
+    headers: {
+      authorization: "Bearer test-token"
+    }
+  });
+
+  assert.equal(authorized.status, 200);
+  assert.deepEqual(await authorized.json(), { status: "ok" });
+
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+});
+
 test("design daemon loads the snapshot and returns provider-tagged candidates", async () => {
   const fixture = await createSnapshotFixture();
   let receivedBody: DesignGenerationHttpRequest | null = null;

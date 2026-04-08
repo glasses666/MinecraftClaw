@@ -71,9 +71,14 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 	private static ModelProfileStore modelProfileStore;
 	private static ModelProfileConfig modelProfileConfig = ModelProfileConfig.empty();
 	private static DesignDaemonClient designDaemonClient;
+	private static DesignDaemonLauncher designDaemonLauncher;
 	private static CompletableFuture<DesignCandidateResponsePayload> pendingGenerationFuture;
 	private static DesignGenerationLaunch pendingGenerationLaunch;
 	private static DesignPreviewSession activePreviewSession;
+	private static CompletableFuture<String> daemonBootstrapFuture;
+	private static boolean daemonBootstrapReady;
+	private static String daemonBootstrapFailure;
+	private static boolean daemonBootstrapNotified;
 
 	@Override
 	public void onInitializeClient() {
@@ -186,6 +191,9 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 		ClientLifecycleEvents.CLIENT_STOPPING.register((client) -> {
 			persistCommittedSelection(client);
 			clearDesignPreviewState();
+			if (designDaemonLauncher != null) {
+				designDaemonLauncher.stop();
+			}
 		});
 	}
 
@@ -215,6 +223,15 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 	static void submitDesignGeneration(ModelProfile profile, DesignPromptInputs promptInputs) {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client.player == null) {
+			return;
+		}
+		ensureDesignDaemonBootstrapStarted(client);
+		if (!daemonBootstrapReady) {
+			if (daemonBootstrapFailure != null) {
+				client.player.sendMessage(Text.literal("MinecraftClaw: design daemon unavailable: " + daemonBootstrapFailure), false);
+			} else {
+				client.player.sendMessage(Text.literal("MinecraftClaw: design daemon is still starting, try again in a moment."), false);
+			}
 			return;
 		}
 		if (promptInputs.prompt().isBlank()) {
@@ -283,6 +300,8 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 	}
 
 	private static void tickClient(MinecraftClient client) {
+		ensureDesignDaemonBootstrapStarted(client);
+		pollDesignDaemonBootstrap(client);
 		syncSelectionScope(client);
 		updatePreviewTarget(client);
 		handleAirSelectionAttackFallback(client);
@@ -629,7 +648,7 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 
 	private static SelectionPersistence selectionPersistence(MinecraftClient client) {
 		if (selectionPersistence == null) {
-			Path stateDirectory = client.runDirectory.toPath().resolve("minecraftclaw").resolve("client-state");
+			Path stateDirectory = clientStateDirectory(client);
 			selectionPersistence = new SelectionPersistence(stateDirectory);
 		}
 
@@ -638,7 +657,7 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 
 	private static ModelProfileStore modelProfileStore(MinecraftClient client) {
 		if (modelProfileStore == null) {
-			Path stateDirectory = client.runDirectory.toPath().resolve("minecraftclaw").resolve("client-state");
+			Path stateDirectory = clientStateDirectory(client);
 			modelProfileStore = new ModelProfileStore(stateDirectory);
 		}
 
@@ -670,6 +689,22 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 		return designDaemonClient;
 	}
 
+	private static DesignDaemonLauncher designDaemonLauncher(MinecraftClient client) {
+		if (designDaemonLauncher == null) {
+			designDaemonLauncher = new DesignDaemonLauncher(
+				designDaemonClient(client),
+				new DesignDaemonLauncherConfigStore(clientStateDirectory(client)),
+				client.runDirectory.toPath().resolve("minecraftclaw").resolve("logs").resolve("design-daemon.log")
+			);
+		}
+
+		return designDaemonLauncher;
+	}
+
+	private static Path clientStateDirectory(MinecraftClient client) {
+		return client.runDirectory.toPath().resolve("minecraftclaw").resolve("client-state");
+	}
+
 	private static void clearDesignPreviewState() {
 		if (pendingGenerationFuture != null) {
 			pendingGenerationFuture.cancel(true);
@@ -677,6 +712,52 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 		pendingGenerationFuture = null;
 		pendingGenerationLaunch = null;
 		activePreviewSession = null;
+	}
+
+	private static void ensureDesignDaemonBootstrapStarted(MinecraftClient client) {
+		if (client == null || daemonBootstrapReady || daemonBootstrapFuture != null || daemonBootstrapFailure != null) {
+			return;
+		}
+
+		daemonBootstrapFuture = CompletableFuture.supplyAsync(() -> {
+			try {
+				return designDaemonLauncher(client).ensureRunning();
+			} catch (IOException | InterruptedException exception) {
+				throw new CompletionException(exception);
+			}
+		});
+	}
+
+	private static void pollDesignDaemonBootstrap(MinecraftClient client) {
+		if (daemonBootstrapFuture != null && daemonBootstrapFuture.isDone()) {
+			try {
+				String message = daemonBootstrapFuture.join();
+				daemonBootstrapReady = true;
+				daemonBootstrapFailure = null;
+				MinecraftClawMod.LOGGER.info(message);
+			} catch (CompletionException exception) {
+				daemonBootstrapReady = false;
+				daemonBootstrapFailure = exception.getCause() == null ? exception.getMessage() : exception.getCause().getMessage();
+				MinecraftClawMod.LOGGER.warn("MinecraftClaw design daemon bootstrap failed: {}", daemonBootstrapFailure);
+			}
+			daemonBootstrapFuture = null;
+			daemonBootstrapNotified = false;
+		}
+
+		if (daemonBootstrapNotified || client == null || client.player == null) {
+			return;
+		}
+
+		if (daemonBootstrapReady) {
+			client.player.sendMessage(Text.literal("MinecraftClaw: design daemon is ready."), false);
+			daemonBootstrapNotified = true;
+			return;
+		}
+
+		if (daemonBootstrapFailure != null) {
+			client.player.sendMessage(Text.literal("MinecraftClaw: design daemon bootstrap failed: " + daemonBootstrapFailure), false);
+			daemonBootstrapNotified = true;
+		}
 	}
 
 	private static boolean isDesignGenerationActive() {

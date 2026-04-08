@@ -36,4 +36,14 @@ public final class DesignDaemonClient {
 
 		return GSON.fromJson(response.body(), DesignCandidateResponsePayload.class);
 	}
+
+	public boolean isHealthy() throws IOException, InterruptedException {
+		HttpRequest httpRequest = HttpRequest.newBuilder(baseUri.resolve("/health"))
+			.timeout(Duration.ofSeconds(5))
+			.header("authorization", "Bearer " + bearerToken)
+			.GET()
+			.build();
+		HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+		return response.statusCode() == 200 && response.body().contains("\"ok\"");
+	}
 }
