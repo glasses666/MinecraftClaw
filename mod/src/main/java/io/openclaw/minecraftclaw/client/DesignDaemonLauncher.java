@@ -123,8 +123,10 @@ public final class DesignDaemonLauncher {
 		}
 
 		Files.createDirectories(logFile.getParent());
-		ProcessBuilder processBuilder = new ProcessBuilder(resolveExecutable("npm").toString(), "run", "design:daemon");
+		Path npmExecutable = resolveExecutable("npm");
+		ProcessBuilder processBuilder = new ProcessBuilder(npmExecutable.toString(), "run", "design:daemon");
 		processBuilder.directory(mcpServerDir.toFile());
+		DesignDaemonCommandEnvironment.prependExecutableDirectory(processBuilder.environment(), npmExecutable);
 		processBuilder.redirectErrorStream(true);
 		processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
 		ownedProcess = processBuilder.start();
@@ -135,6 +137,9 @@ public final class DesignDaemonLauncher {
 		ProcessBuilder processBuilder = new ProcessBuilder(command);
 		if (directory != null) {
 			processBuilder.directory(directory.toFile());
+		}
+		if (command.length > 0) {
+			DesignDaemonCommandEnvironment.prependExecutableDirectory(processBuilder.environment(), Path.of(command[0]));
 		}
 		processBuilder.redirectErrorStream(true);
 		Process process = processBuilder.start();
@@ -155,6 +160,9 @@ public final class DesignDaemonLauncher {
 		Files.createDirectories(logFile.getParent());
 		ProcessBuilder processBuilder = new ProcessBuilder(command);
 		processBuilder.directory(directory.toFile());
+		if (command.length > 0) {
+			DesignDaemonCommandEnvironment.prependExecutableDirectory(processBuilder.environment(), Path.of(command[0]));
+		}
 		processBuilder.redirectErrorStream(true);
 		processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
 		Process process = processBuilder.start();
