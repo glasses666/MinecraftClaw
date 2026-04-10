@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public final class DesignDaemonLauncher {
@@ -86,25 +87,27 @@ public final class DesignDaemonLauncher {
 	}
 
 	private void requireCommand(String command) throws IOException, InterruptedException {
-		CommandResult result = runCapturedCommand(null, QUICK_COMMAND_TIMEOUT, command, "--version");
+		Path executable = resolveExecutable(command);
+		CommandResult result = runCapturedCommand(null, QUICK_COMMAND_TIMEOUT, executable.toString(), "--version");
 		if (result.exitCode() != 0) {
 			throw new IOException("Missing required executable `" + command + "` on PATH.");
 		}
 	}
 
 	private void ensureDependencies(Path mcpServerDir) throws IOException, InterruptedException {
-		CommandResult dependencyCheck = runCapturedCommand(mcpServerDir, QUICK_COMMAND_TIMEOUT, "npm", "ls", "--depth=0", "--json");
+		Path npmExecutable = resolveExecutable("npm");
+		CommandResult dependencyCheck = runCapturedCommand(mcpServerDir, QUICK_COMMAND_TIMEOUT, npmExecutable.toString(), "ls", "--depth=0", "--json");
 		List<String> missingPackages = DesignDaemonDependencyInspector.extractMissingPackages(dependencyCheck.output());
 		if (dependencyCheck.exitCode() == 0 && missingPackages.isEmpty()) {
 			return;
 		}
 
-		CommandResult installResult = runLoggedCommand(mcpServerDir, INSTALL_TIMEOUT, "npm", "ci");
+		CommandResult installResult = runLoggedCommand(mcpServerDir, INSTALL_TIMEOUT, npmExecutable.toString(), "ci");
 		if (installResult.exitCode() != 0) {
 			throw new IOException("npm ci failed while preparing design daemon dependencies. See log: " + logFile);
 		}
 
-		CommandResult recheck = runCapturedCommand(mcpServerDir, QUICK_COMMAND_TIMEOUT, "npm", "ls", "--depth=0", "--json");
+		CommandResult recheck = runCapturedCommand(mcpServerDir, QUICK_COMMAND_TIMEOUT, npmExecutable.toString(), "ls", "--depth=0", "--json");
 		List<String> remainingMissingPackages = DesignDaemonDependencyInspector.extractMissingPackages(recheck.output());
 		if (!remainingMissingPackages.isEmpty()) {
 			throw new IOException("Missing design daemon packages: " + String.join(", ", remainingMissingPackages));
@@ -120,7 +123,7 @@ public final class DesignDaemonLauncher {
 		}
 
 		Files.createDirectories(logFile.getParent());
-		ProcessBuilder processBuilder = new ProcessBuilder("npm", "run", "design:daemon");
+		ProcessBuilder processBuilder = new ProcessBuilder(resolveExecutable("npm").toString(), "run", "design:daemon");
 		processBuilder.directory(mcpServerDir.toFile());
 		processBuilder.redirectErrorStream(true);
 		processBuilder.redirectOutput(ProcessBuilder.Redirect.appendTo(logFile.toFile()));
@@ -167,5 +170,29 @@ public final class DesignDaemonLauncher {
 		int exitCode,
 		String output
 	) {
+	}
+
+	private Path resolveExecutable(String command) throws IOException {
+		Path resolved = DesignDaemonExecutableResolver.resolve(command, System.getenv(), fallbackExecutables(command));
+		if (resolved == null) {
+			throw new IOException("Missing required executable `" + command + "` on PATH.");
+		}
+		return resolved;
+	}
+
+	private static List<Path> fallbackExecutables(String command) {
+		return switch (command) {
+			case "node" -> List.of(
+				Path.of("/opt/homebrew/bin/node"),
+				Path.of("/usr/local/bin/node"),
+				Path.of("/usr/bin/node")
+			);
+			case "npm" -> List.of(
+				Path.of("/opt/homebrew/bin/npm"),
+				Path.of("/usr/local/bin/npm"),
+				Path.of("/usr/bin/npm")
+			);
+			default -> List.of();
+		};
 	}
 }
