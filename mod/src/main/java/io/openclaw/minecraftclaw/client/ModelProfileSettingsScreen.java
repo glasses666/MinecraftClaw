@@ -10,6 +10,9 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 public final class ModelProfileSettingsScreen extends Screen {
+	private static final int PANEL_TOP = 38;
+	private static final int PANEL_PADDING = 18;
+
 	private final DesignGenerationScreen parent;
 	private TextFieldWidget labelField;
 	private TextFieldWidget baseUrlField;
@@ -32,35 +35,35 @@ public final class ModelProfileSettingsScreen extends Screen {
 		syncProfiles();
 
 		int centerX = width / 2;
-		int contentWidth = Math.min(340, width - 40);
+		int contentWidth = Math.min(360, width - 56);
 		int left = centerX - contentWidth / 2;
-		int top = 46;
+		int top = PANEL_TOP + 34;
 
 		profileButton = addDrawableChild(ButtonWidget.builder(Text.literal("Profile"), (button) -> cycleProfile())
-			.dimensions(left, top, contentWidth, 20)
+			.dimensions(left, top + 12, contentWidth, 20)
 			.build());
 
-		labelField = addField(left, top + 34, contentWidth, "Label");
-		baseUrlField = addField(left, top + 68, contentWidth, "Base URL");
-		apiKeyField = addField(left, top + 102, contentWidth, "API Key");
-		modelField = addField(left, top + 136, contentWidth, "Model");
+		labelField = addField(left, top + 46, contentWidth, "Label");
+		baseUrlField = addField(left, top + 92, contentWidth, "Base URL");
+		apiKeyField = addField(left, top + 138, contentWidth, "API Key (optional)");
+		modelField = addField(left, top + 184, contentWidth, "Model");
 
 		enabledButton = addDrawableChild(ButtonWidget.builder(Text.literal("Enabled"), (button) -> {
 			enabled = !enabled;
 			updateButtonLabels();
-		}).dimensions(left, top + 170, contentWidth, 20).build());
+		}).dimensions(left, top + 230, contentWidth, 20).build());
 
 		addDrawableChild(ButtonWidget.builder(Text.literal("New Profile"), (button) -> createNewProfile())
-			.dimensions(left, top + 198, 108, 20)
+			.dimensions(left, top + 258, 108, 20)
 			.build());
 		addDrawableChild(ButtonWidget.builder(Text.literal("Delete"), (button) -> deleteCurrentProfile())
-			.dimensions(left + 116, top + 198, 108, 20)
+			.dimensions(left + 116, top + 258, 108, 20)
 			.build());
 		addDrawableChild(ButtonWidget.builder(Text.literal("Save"), (button) -> saveCurrentProfile())
-			.dimensions(left + 232, top + 198, 108, 20)
+			.dimensions(left + 232, top + 258, 108, 20)
 			.build());
 		addDrawableChild(ButtonWidget.builder(Text.literal("Done"), (button) -> close())
-			.dimensions(left, top + 226, contentWidth, 20)
+			.dimensions(left, top + 286, contentWidth, 20)
 			.build());
 
 		loadProfileIntoFields(currentProfile());
@@ -71,16 +74,20 @@ public final class ModelProfileSettingsScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		super.render(context, mouseX, mouseY, delta);
 		int centerX = width / 2;
-		context.drawCenteredTextWithShadow(textRenderer, title, centerX, 20, 0xFFFFFF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Profile"), centerX - 170, 52, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Label"), centerX - 170, 86, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Provider (OpenAI-compatible)"), centerX - 170, 104, 0x808080);
-		context.drawTextWithShadow(textRenderer, Text.literal("Base URL"), centerX - 170, 120, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("API Key"), centerX - 170, 154, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Model"), centerX - 170, 188, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Enabled"), centerX - 170, 222, 0xAFAFAF);
+		int contentWidth = Math.min(360, width - 56);
+		int left = centerX - contentWidth / 2;
+		int top = PANEL_TOP + 34;
+		context.fill(left - PANEL_PADDING, PANEL_TOP, left + contentWidth + PANEL_PADDING, top + 314, 0xA0141820);
+		super.render(context, mouseX, mouseY, delta);
+		context.drawCenteredTextWithShadow(textRenderer, title, centerX, PANEL_TOP + 8, 0xFFFFFF);
+		context.drawTextWithShadow(textRenderer, Text.literal("Profile"), left, top, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Label"), left, top + 34, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Base URL"), left, top + 80, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("API Key (optional)"), left, top + 126, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Model"), left, top + 172, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Provider: OpenAI-compatible"), left, top + 208, 0xA8A8A8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Enabled"), left, top + 218, 0xD8D8D8);
 		labelField.render(context, mouseX, mouseY, delta);
 		baseUrlField.render(context, mouseX, mouseY, delta);
 		apiKeyField.render(context, mouseX, mouseY, delta);

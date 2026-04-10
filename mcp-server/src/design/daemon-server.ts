@@ -112,7 +112,7 @@ function normalizeRequest(input: unknown): DesignGenerationHttpRequest {
     providerProfileId: requiredString(body.providerProfileId, "providerProfileId"),
     providerType: requiredString(body.providerType, "providerType"),
     baseUrl: requiredString(body.baseUrl, "baseUrl"),
-    apiKey: requiredString(body.apiKey, "apiKey"),
+    apiKey: optionalString(body.apiKey),
     model: requiredString(body.model, "model")
   };
 }
@@ -120,6 +120,14 @@ function normalizeRequest(input: unknown): DesignGenerationHttpRequest {
 function requiredString(value: unknown, fieldName: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new Error(`${fieldName} must be a non-empty string.`);
+  }
+
+  return value.trim();
+}
+
+function optionalString(value: unknown): string {
+  if (typeof value !== "string") {
+    return "";
   }
 
   return value.trim();

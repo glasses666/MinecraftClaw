@@ -178,6 +178,46 @@ test("design daemon rejects generation requests when the snapshot id does not ma
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
 });
 
+test("design daemon accepts generation requests without an api key", async () => {
+  const fixture = await createSnapshotFixture();
+  let receivedBody: DesignGenerationHttpRequest | null = null;
+  const server = createDesignDaemonServer({
+    token: "test-token",
+    generateCandidates: async (request, snapshot) => {
+      receivedBody = request;
+      return {
+        snapshotId: snapshot.request.snapshotId,
+        provider: {
+          name: request.providerProfileId,
+          model: request.model
+        },
+        candidates: []
+      };
+    }
+  });
+
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address !== null && typeof address !== "string");
+
+  const response = await fetch(`http://127.0.0.1:${(address as AddressInfo).port}/design/generate`, {
+    method: "POST",
+    headers: {
+      authorization: "Bearer test-token",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      ...sampleRequest(fixture.rootDir),
+      apiKey: ""
+    })
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal((receivedBody as DesignGenerationHttpRequest | null)?.apiKey, "");
+
+  await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+});
+
 function sampleRequest(snapshotDir: string): DesignGenerationHttpRequest {
   return {
     snapshotDir,

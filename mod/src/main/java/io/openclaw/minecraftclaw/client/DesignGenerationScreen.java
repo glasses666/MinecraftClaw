@@ -9,6 +9,11 @@ import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.text.Text;
 
 public final class DesignGenerationScreen extends Screen {
+	private static final int PANEL_TOP = 44;
+	private static final int PANEL_PADDING = 18;
+	private static final int LABEL_TO_FIELD_GAP = 12;
+	private static final int FIELD_GAP = 46;
+
 	private TextFieldWidget promptField;
 	private TextFieldWidget positivePromptField;
 	private TextFieldWidget negativePromptField;
@@ -26,40 +31,40 @@ public final class DesignGenerationScreen extends Screen {
 		refreshFromStore();
 
 		int centerX = width / 2;
-		int contentWidth = Math.min(320, width - 40);
+		int contentWidth = Math.min(360, width - 56);
 		int left = centerX - contentWidth / 2;
-		int top = 48;
+		int top = PANEL_TOP + 34;
 
 		profileButton = addDrawableChild(ButtonWidget.builder(Text.literal("Profile"), (button) -> cycleProfile())
-			.dimensions(left, top, contentWidth, 20)
+			.dimensions(left, top + LABEL_TO_FIELD_GAP, contentWidth, 20)
 			.build());
 
-		promptField = new TextFieldWidget(textRenderer, left, top + 36, contentWidth, 20, Text.literal("Prompt"));
+		promptField = new TextFieldWidget(textRenderer, left, top + FIELD_GAP, contentWidth, 20, Text.literal("Prompt"));
 		promptField.setMaxLength(512);
 		promptField.setPlaceholder(Text.literal("Prompt"));
 		promptField.setChangedListener((value) -> updateButtonLabels());
 		addSelectableChild(promptField);
 
-		positivePromptField = new TextFieldWidget(textRenderer, left, top + 72, contentWidth, 20, Text.literal("Positive Prompt"));
+		positivePromptField = new TextFieldWidget(textRenderer, left, top + FIELD_GAP + 46, contentWidth, 20, Text.literal("Positive Prompt"));
 		positivePromptField.setMaxLength(512);
 		positivePromptField.setPlaceholder(Text.literal("Positive prompt"));
 		positivePromptField.setChangedListener((value) -> updateButtonLabels());
 		addSelectableChild(positivePromptField);
 
-		negativePromptField = new TextFieldWidget(textRenderer, left, top + 108, contentWidth, 20, Text.literal("Negative Prompt"));
+		negativePromptField = new TextFieldWidget(textRenderer, left, top + FIELD_GAP + 92, contentWidth, 20, Text.literal("Negative Prompt"));
 		negativePromptField.setMaxLength(512);
 		negativePromptField.setPlaceholder(Text.literal("Negative prompt"));
 		negativePromptField.setChangedListener((value) -> updateButtonLabels());
 		addSelectableChild(negativePromptField);
 
 		addDrawableChild(ButtonWidget.builder(Text.literal("Profile Settings"), (button) -> client.setScreen(new ModelProfileSettingsScreen(this)))
-			.dimensions(left, top + 144, contentWidth, 20)
+			.dimensions(left, top + FIELD_GAP + 136, contentWidth, 20)
 			.build());
 		generateButton = addDrawableChild(ButtonWidget.builder(Text.literal(resolveGenerateLabel()), (button) -> submitGeneration())
-			.dimensions(left, top + 178, contentWidth, 20)
+			.dimensions(left, top + FIELD_GAP + 170, contentWidth, 20)
 			.build());
 		addDrawableChild(ButtonWidget.builder(Text.literal("Cancel"), (button) -> close())
-			.dimensions(left, top + 204, contentWidth, 20)
+			.dimensions(left, top + FIELD_GAP + 196, contentWidth, 20)
 			.build());
 
 		updateButtonLabels();
@@ -93,14 +98,19 @@ public final class DesignGenerationScreen extends Screen {
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
 		renderBackground(context);
-		super.render(context, mouseX, mouseY, delta);
 		int centerX = width / 2;
-		context.drawCenteredTextWithShadow(textRenderer, title, centerX, 20, 0xFFFFFF);
-		context.drawTextWithShadow(textRenderer, Text.literal(selectionSummary()), centerX - 160, 32, 0xD0D0D0);
-		context.drawTextWithShadow(textRenderer, Text.literal("Selected model profile"), centerX - 160, 54, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Prompt"), centerX - 160, 76, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Positive prompt"), centerX - 160, 112, 0xAFAFAF);
-		context.drawTextWithShadow(textRenderer, Text.literal("Negative prompt"), centerX - 160, 148, 0xAFAFAF);
+		int contentWidth = Math.min(360, width - 56);
+		int left = centerX - contentWidth / 2;
+		int top = PANEL_TOP + 34;
+		int panelBottom = top + FIELD_GAP + 224;
+		context.fill(left - PANEL_PADDING, PANEL_TOP, left + contentWidth + PANEL_PADDING, panelBottom, 0xA0141820);
+		super.render(context, mouseX, mouseY, delta);
+		context.drawCenteredTextWithShadow(textRenderer, title, centerX, PANEL_TOP + 8, 0xFFFFFF);
+		context.drawCenteredTextWithShadow(textRenderer, Text.literal(selectionSummary()), centerX, PANEL_TOP + 20, 0xD0D0D0);
+		context.drawTextWithShadow(textRenderer, Text.literal("Selected model profile"), left, top, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Prompt"), left, top + FIELD_GAP - LABEL_TO_FIELD_GAP, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Positive prompt"), left, top + FIELD_GAP + 34, 0xD8D8D8);
+		context.drawTextWithShadow(textRenderer, Text.literal("Negative prompt"), left, top + FIELD_GAP + 80, 0xD8D8D8);
 		promptField.render(context, mouseX, mouseY, delta);
 		positivePromptField.render(context, mouseX, mouseY, delta);
 		negativePromptField.render(context, mouseX, mouseY, delta);
@@ -127,7 +137,7 @@ public final class DesignGenerationScreen extends Screen {
 			return;
 		}
 
-		MinecraftClawClientMod.submitDesignGeneration(
+		boolean submitted = MinecraftClawClientMod.submitDesignGeneration(
 			profile,
 			new DesignPromptInputs(
 				promptField.getText().trim(),
@@ -136,13 +146,15 @@ public final class DesignGenerationScreen extends Screen {
 				3
 			)
 		);
-		close();
+		if (submitted) {
+			close();
+		}
 	}
 
 	private void updateButtonLabels() {
 		if (profileButton != null) {
 			ModelProfile profile = selectedProfile();
-			profileButton.setMessage(Text.literal(profile == null ? "No profiles configured" : profile.label() + " [" + profile.model() + "]"));
+			profileButton.setMessage(Text.literal(profile == null ? "No profiles configured" : formatProfileLabel(profile)));
 		}
 		if (generateButton != null) {
 			generateButton.setMessage(Text.literal(resolveGenerateLabel()));
@@ -179,5 +191,11 @@ public final class DesignGenerationScreen extends Screen {
 		}
 
 		return Math.max(0, Math.min(index, size - 1));
+	}
+
+	private static String formatProfileLabel(ModelProfile profile) {
+		String label = profile.label().isBlank() ? "Unnamed profile" : profile.label();
+		String model = profile.model().isBlank() ? "model unset" : profile.model();
+		return label + " [" + model + "]";
 	}
 }

@@ -143,8 +143,8 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 				SELECTION_STATE.firstCorner().isPresent(),
 				SELECTION_STATE.currentSelection().isPresent()
 			);
-			if (blockUseIntent == WandInteractionPlanner.BlockUseIntent.CAPTURE_SNAPSHOT) {
-				requestSnapshotCapture(SnapshotCaptureRequest.manual());
+			if (blockUseIntent == WandInteractionPlanner.BlockUseIntent.OPEN_DESIGN_SCREEN) {
+				openDesignGenerationScreen();
 				return ActionResult.FAIL;
 			}
 			if (blockUseIntent == WandInteractionPlanner.BlockUseIntent.REQUIRE_FIRST_CORNER) {
@@ -166,7 +166,7 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 			}
 
 			if (player.isSneaking() && SELECTION_STATE.currentSelection().isPresent()) {
-				requestSnapshotCapture(SnapshotCaptureRequest.manual());
+				openDesignGenerationScreen();
 				return TypedActionResult.fail(stack);
 			}
 
@@ -220,10 +220,10 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 		return activePreviewSession != null;
 	}
 
-	static void submitDesignGeneration(ModelProfile profile, DesignPromptInputs promptInputs) {
+	static boolean submitDesignGeneration(ModelProfile profile, DesignPromptInputs promptInputs) {
 		MinecraftClient client = MinecraftClient.getInstance();
 		if (client.player == null) {
-			return;
+			return false;
 		}
 		ensureDesignDaemonBootstrapStarted(client);
 		if (!daemonBootstrapReady) {
@@ -232,19 +232,27 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 			} else {
 				client.player.sendMessage(Text.literal("MinecraftClaw: design daemon is still starting, try again in a moment."), false);
 			}
-			return;
+			return false;
 		}
 		if (promptInputs.prompt().isBlank()) {
 			client.player.sendMessage(Text.literal("MinecraftClaw: enter a prompt before generating."), false);
-			return;
+			return false;
 		}
 		if (!profile.enabled()) {
 			client.player.sendMessage(Text.literal("MinecraftClaw: selected profile is disabled."), false);
-			return;
+			return false;
+		}
+		if (profile.baseUrl().isBlank()) {
+			client.player.sendMessage(Text.literal("MinecraftClaw: selected profile is missing a base URL."), false);
+			return false;
+		}
+		if (profile.model().isBlank()) {
+			client.player.sendMessage(Text.literal("MinecraftClaw: selected profile is missing a model name."), false);
+			return false;
 		}
 		if (activeSnapshotCapture != null || pendingGenerationFuture != null) {
 			client.player.sendMessage(Text.literal("MinecraftClaw: generation is already in progress."), false);
-			return;
+			return false;
 		}
 
 		clearDesignPreviewState();
@@ -254,6 +262,7 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 			Text.literal("MinecraftClaw: capturing a fresh snapshot before generating candidates with " + profile.label() + "."),
 			false
 		);
+		return true;
 	}
 
 	private static void renderSelectionFrame(WorldRenderContext context) {
@@ -614,8 +623,8 @@ public final class MinecraftClawClientMod implements ClientModInitializer {
 				),
 				false
 			);
+			player.sendMessage(Text.literal("MinecraftClaw: sneak-right-click with the wand to open the design screen."), false);
 			persistCommittedSelection(MinecraftClient.getInstance());
-			openDesignGenerationScreen();
 		});
 	}
 

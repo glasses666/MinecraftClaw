@@ -14,9 +14,9 @@ class WandInteractionPlannerTest {
 	}
 
 	@Test
-	void blockUseCapturesSnapshotWhenSneakingWithActiveSelection() {
+	void blockUseOpensDesignScreenWhenSneakingWithActiveSelection() {
 		assertEquals(
-			WandInteractionPlanner.BlockUseIntent.CAPTURE_SNAPSHOT,
+			WandInteractionPlanner.BlockUseIntent.OPEN_DESIGN_SCREEN,
 			WandInteractionPlanner.resolveBlockUseIntent(true, true, true)
 		);
 	}
