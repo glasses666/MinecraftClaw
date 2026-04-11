@@ -32,7 +32,7 @@ class SnapshotCaptureSchedulerTest {
 		SnapshotCaptureRequest first = SnapshotCaptureRequest.manual();
 		SnapshotCaptureRequest second = SnapshotCaptureRequest.designGeneration(
 			new DesignGenerationLaunch(
-				new ModelProfile("profile", "Local", ProviderType.OPENAI_COMPATIBLE, "http://127.0.0.1:11434/v1", "key", "model", true),
+				new ModelProfile("profile", "Local", ProviderType.OPENAI_COMPATIBLE, "http://127.0.0.1:11434/v1", "key", "model", false, true),
 				new DesignPromptInputs("prompt", "positive", "negative", 3)
 			)
 		);

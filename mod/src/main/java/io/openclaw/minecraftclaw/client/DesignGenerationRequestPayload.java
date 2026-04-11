@@ -7,7 +7,8 @@ public record DesignGenerationRequestPayload(
 	String providerType,
 	String baseUrl,
 	String apiKey,
-	String model
+	String model,
+	boolean supportsVision
 ) {
 	public static DesignGenerationRequestPayload from(ModelProfile profile, String snapshotDir, String snapshotId) {
 		return new DesignGenerationRequestPayload(
@@ -17,7 +18,8 @@ public record DesignGenerationRequestPayload(
 			profile.providerType().serializedName(),
 			profile.baseUrl(),
 			profile.apiKey(),
-			profile.model()
+			profile.model(),
+			profile.supportsVision()
 		);
 	}
 }

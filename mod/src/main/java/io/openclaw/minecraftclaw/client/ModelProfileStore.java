@@ -46,6 +46,7 @@ public final class ModelProfileStore {
 					profile.get("baseUrl").getAsString(),
 					profile.get("apiKey").getAsString(),
 					profile.get("model").getAsString(),
+					profile.has("supportsVision") && profile.get("supportsVision").getAsBoolean(),
 					profile.get("enabled").getAsBoolean()
 				));
 			}
@@ -73,6 +74,7 @@ public final class ModelProfileStore {
 			entry.addProperty("baseUrl", profile.baseUrl());
 			entry.addProperty("apiKey", profile.apiKey());
 			entry.addProperty("model", profile.model());
+			entry.addProperty("supportsVision", profile.supportsVision());
 			entry.addProperty("enabled", profile.enabled());
 			profiles.add(entry);
 		}

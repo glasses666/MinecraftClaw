@@ -7,6 +7,7 @@ public record ModelProfile(
 	String baseUrl,
 	String apiKey,
 	String model,
+	boolean supportsVision,
 	boolean enabled
 ) {
 }
