@@ -45,11 +45,16 @@ public final class CandidatePreviewCompiler {
 	}
 
 	private static void put(Map<String, PreviewVoxel> voxels, LocalBlockPos position, String blockId) {
-		if (position == null || blockId == null || "minecraft:air".equals(blockId)) {
+		if (position == null || blockId == null) {
 			return;
 		}
 
-		voxels.put(key(position), new PreviewVoxel(position.x(), position.y(), position.z(), blockId));
+		ParsedBlockSpec parsed = ParsedBlockSpec.parse(blockId);
+		if ("minecraft:air".equals(parsed.blockId())) {
+			return;
+		}
+
+		voxels.put(key(position), new PreviewVoxel(position.x(), position.y(), position.z(), parsed.blockId(), parsed.stateProperties()));
 	}
 
 	private static String extractSetblockBlockId(String commandTemplate) {
@@ -62,10 +67,28 @@ public final class CandidatePreviewCompiler {
 			return null;
 		}
 
-		return matcher.group(1).replaceAll("\\[.*$", "");
+		return matcher.group(1);
 	}
 
 	private static String key(LocalBlockPos position) {
 		return position.x() + "," + position.y() + "," + position.z();
+	}
+
+	private record ParsedBlockSpec(
+		String blockId,
+		String stateProperties
+	) {
+		private static ParsedBlockSpec parse(String input) {
+			String trimmed = input.trim();
+			int stateStart = trimmed.indexOf('[');
+			if (stateStart < 0 || !trimmed.endsWith("]")) {
+				return new ParsedBlockSpec(trimmed, null);
+			}
+
+			return new ParsedBlockSpec(
+				trimmed.substring(0, stateStart),
+				trimmed.substring(stateStart + 1, trimmed.length() - 1)
+			);
+		}
 	}
 }

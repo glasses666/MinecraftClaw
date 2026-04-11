@@ -32,7 +32,7 @@ public final class SelectionAuraRenderer {
 					selection.max().getY() + 1.0D,
 					stripeMaxZ
 				).offset(-cameraX, -cameraY, -cameraZ),
-				new SelectionBoxRenderer.SelectionVisual(red, green, blue, 0.05F, 0.0F)
+				new SelectionBoxRenderer.SelectionVisual(red, green, blue, 0.05F, 0.0F, 0.0F)
 			);
 		}
 	}

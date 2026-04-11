@@ -19,20 +19,28 @@ public final class SelectionBoxRenderer {
 	public static void render(MatrixStack matrices, Box box, SelectionVisual visual) {
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
-		RenderSystem.setShader(GameRenderer::getPositionColorProgram);
 		VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(Tessellator.getInstance().getBuffer());
-		drawFilledBox(matrices, immediate.getBuffer(RenderLayer.getDebugFilledBox()), box, visual);
-		RenderSystem.setShader(GameRenderer::getRenderTypeLinesProgram);
-		RenderSystem.lineWidth(2.0F);
-		WorldRenderer.drawBox(
-			matrices,
-			immediate.getBuffer(RenderLayer.getLines()),
-			box,
-			visual.red(),
-			visual.green(),
-			visual.blue(),
-			visual.lineAlpha()
-		);
+		if (visual.fillAlpha() > 0.0F) {
+			RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+			drawFilledBox(matrices, immediate.getBuffer(RenderLayer.getDebugFilledBox()), box, visual);
+		}
+		if (visual.cornerAlpha() > 0.0F) {
+			RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+			drawCornerAccents(matrices, immediate.getBuffer(RenderLayer.getDebugFilledBox()), box, visual);
+		}
+		if (visual.lineAlpha() > 0.0F) {
+			RenderSystem.setShader(GameRenderer::getRenderTypeLinesProgram);
+			RenderSystem.lineWidth(2.0F);
+			WorldRenderer.drawBox(
+				matrices,
+				immediate.getBuffer(RenderLayer.getLines()),
+				box,
+				visual.red(),
+				visual.green(),
+				visual.blue(),
+				visual.lineAlpha()
+			);
+		}
 		immediate.draw();
 		RenderSystem.disableBlend();
 	}
@@ -60,6 +68,116 @@ public final class SelectionBoxRenderer {
 		quad(consumer, positionMatrix, red, green, blue, alpha, maxX, minY, minZ, maxX, minY, maxZ, maxX, maxY, maxZ, maxX, maxY, minZ);
 		quad(consumer, positionMatrix, red, green, blue, alpha, minX, maxY, minZ, maxX, maxY, minZ, maxX, maxY, maxZ, minX, maxY, maxZ);
 		quad(consumer, positionMatrix, red, green, blue, alpha, minX, minY, maxZ, maxX, minY, maxZ, maxX, minY, minZ, minX, minY, minZ);
+	}
+
+	private static void drawCornerAccents(MatrixStack matrices, VertexConsumer consumer, Box box, SelectionVisual visual) {
+		double sizeX = box.maxX - box.minX;
+		double sizeY = box.maxY - box.minY;
+		double sizeZ = box.maxZ - box.minZ;
+		float accentLength = (float) Math.min(1.35D, Math.max(0.35D, Math.min(sizeX, Math.min(sizeY, sizeZ)) * 0.18D));
+		float thickness = 0.045F;
+		float red = visual.red();
+		float green = visual.green();
+		float blue = visual.blue();
+		float alpha = visual.cornerAlpha();
+
+		float minX = (float) box.minX;
+		float minY = (float) box.minY;
+		float minZ = (float) box.minZ;
+		float maxX = (float) box.maxX;
+		float maxY = (float) box.maxY;
+		float maxZ = (float) box.maxZ;
+
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, minX, minY, minZ, accentLength, thickness, true, true, true);
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, maxX, minY, minZ, accentLength, thickness, false, true, true);
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, minX, maxY, minZ, accentLength, thickness, true, false, true);
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, maxX, maxY, minZ, accentLength, thickness, false, false, true);
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, minX, minY, maxZ, accentLength, thickness, true, true, false);
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, maxX, minY, maxZ, accentLength, thickness, false, true, false);
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, minX, maxY, maxZ, accentLength, thickness, true, false, false);
+		drawAccentSet(matrices, consumer, red, green, blue, alpha, maxX, maxY, maxZ, accentLength, thickness, false, false, false);
+	}
+
+	private static void drawAccentSet(
+		MatrixStack matrices,
+		VertexConsumer consumer,
+		float red,
+		float green,
+		float blue,
+		float alpha,
+		float x,
+		float y,
+		float z,
+		float length,
+		float thickness,
+		boolean extendPositiveX,
+		boolean extendPositiveY,
+		boolean extendPositiveZ
+	) {
+		drawAccentBox(
+			matrices,
+			consumer,
+			red,
+			green,
+			blue,
+			alpha,
+			extendPositiveX ? x : x - length,
+			y - thickness,
+			z - thickness,
+			extendPositiveX ? x + length : x,
+			y + thickness,
+			z + thickness
+		);
+		drawAccentBox(
+			matrices,
+			consumer,
+			red,
+			green,
+			blue,
+			alpha,
+			x - thickness,
+			extendPositiveY ? y : y - length,
+			z - thickness,
+			x + thickness,
+			extendPositiveY ? y + length : y,
+			z + thickness
+		);
+		drawAccentBox(
+			matrices,
+			consumer,
+			red,
+			green,
+			blue,
+			alpha,
+			x - thickness,
+			y - thickness,
+			extendPositiveZ ? z : z - length,
+			x + thickness,
+			y + thickness,
+			extendPositiveZ ? z + length : z
+		);
+	}
+
+	private static void drawAccentBox(
+		MatrixStack matrices,
+		VertexConsumer consumer,
+		float red,
+		float green,
+		float blue,
+		float alpha,
+		float minX,
+		float minY,
+		float minZ,
+		float maxX,
+		float maxY,
+		float maxZ
+	) {
+		drawFilledBox(
+			matrices,
+			consumer,
+			new Box(minX, minY, minZ, maxX, maxY, maxZ),
+			new SelectionVisual(red, green, blue, alpha, 0.0F, 0.0F)
+		);
 	}
 
 	private static void quad(
@@ -112,7 +230,8 @@ public final class SelectionBoxRenderer {
 		float green,
 		float blue,
 		float fillAlpha,
-		float lineAlpha
+		float lineAlpha,
+		float cornerAlpha
 	) {
 	}
 }

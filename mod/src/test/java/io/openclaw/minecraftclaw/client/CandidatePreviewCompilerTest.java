@@ -34,10 +34,34 @@ class CandidatePreviewCompilerTest {
 		List<PreviewVoxel> voxels = CandidatePreviewCompiler.compile(blueprint);
 
 		assertEquals(6, voxels.size());
-		assertTrueContains(voxels, new PreviewVoxel(1, 1, 1, "minecraft:spruce_planks"));
-		assertTrueContains(voxels, new PreviewVoxel(2, 1, 2, "minecraft:spruce_planks"));
-		assertTrueContains(voxels, new PreviewVoxel(3, 1, 3, "minecraft:glass"));
-		assertTrueContains(voxels, new PreviewVoxel(4, 2, 4, "minecraft:lantern"));
+		assertTrueContains(voxels, new PreviewVoxel(1, 1, 1, "minecraft:spruce_planks", null));
+		assertTrueContains(voxels, new PreviewVoxel(2, 1, 2, "minecraft:spruce_planks", null));
+		assertTrueContains(voxels, new PreviewVoxel(3, 1, 3, "minecraft:glass", null));
+		assertTrueContains(voxels, new PreviewVoxel(4, 2, 4, "minecraft:lantern", "hanging=true"));
+	}
+
+	@Test
+	void preservesInlineBlockStatesFromBlockSteps() {
+		RuntimeBlueprintPayload blueprint = new RuntimeBlueprintPayload(
+			"candidate-3",
+			4,
+			4,
+			4,
+			List.of(
+				RuntimeBlueprintStepPayload.block(
+					new LocalBlockPos(1, 1, 1),
+					"minecraft:oak_stairs[facing=east,half=bottom,shape=straight]"
+				)
+			)
+		);
+
+		List<PreviewVoxel> voxels = CandidatePreviewCompiler.compile(blueprint);
+
+		assertEquals(1, voxels.size());
+		assertTrueContains(
+			voxels,
+			new PreviewVoxel(1, 1, 1, "minecraft:oak_stairs", "facing=east,half=bottom,shape=straight")
+		);
 	}
 
 	@Test
