@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 
-import { generateDesignCandidates } from "./candidate-generator.js";
+import { generateModelDesignCandidates } from "./model-generator.js";
 import { loadDesignSnapshot } from "./snapshot.js";
 import type { DesignCandidateResponse, LoadedDesignSnapshot } from "./types.js";
 
@@ -12,6 +12,7 @@ export interface DesignGenerationHttpRequest {
   baseUrl: string;
   apiKey: string;
   model: string;
+  supportsVision: boolean;
 }
 
 export interface DesignDaemonServerOptions {
@@ -71,10 +72,7 @@ async function generateStubbedCandidates(
   request: DesignGenerationHttpRequest,
   snapshot: LoadedDesignSnapshot
 ): Promise<DesignCandidateResponse> {
-  return generateDesignCandidates(snapshot, {
-    providerName: request.providerProfileId,
-    modelName: request.model
-  });
+  return generateModelDesignCandidates(request, snapshot);
 }
 
 function hasBearerToken(request: IncomingMessage, token: string): boolean {
@@ -113,7 +111,8 @@ function normalizeRequest(input: unknown): DesignGenerationHttpRequest {
     providerType: requiredString(body.providerType, "providerType"),
     baseUrl: requiredString(body.baseUrl, "baseUrl"),
     apiKey: optionalString(body.apiKey),
-    model: requiredString(body.model, "model")
+    model: requiredString(body.model, "model"),
+    supportsVision: optionalBoolean(body.supportsVision)
   };
 }
 
@@ -131,6 +130,10 @@ function optionalString(value: unknown): string {
   }
 
   return value.trim();
+}
+
+function optionalBoolean(value: unknown): boolean {
+  return value === true;
 }
 
 function writeJson(response: ServerResponse, statusCode: number, body: unknown): void {

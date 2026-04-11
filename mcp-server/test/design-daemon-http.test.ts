@@ -226,7 +226,8 @@ function sampleRequest(snapshotDir: string): DesignGenerationHttpRequest {
     providerType: "openai-compatible",
     baseUrl: "http://127.0.0.1:11434/v1",
     apiKey: "test-key",
-    model: "gpt-4.1-mini"
+    model: "gpt-4.1-mini",
+    supportsVision: false
   };
 }
 
