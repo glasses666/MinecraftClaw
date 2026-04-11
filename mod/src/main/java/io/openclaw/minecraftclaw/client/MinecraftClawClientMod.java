@@ -52,9 +52,9 @@ import org.lwjgl.glfw.GLFW;
 
 public final class MinecraftClawClientMod implements ClientModInitializer {
 	private static final SelectionBoxRenderer.SelectionVisual COMMITTED_SELECTION_VISUAL =
-		new SelectionBoxRenderer.SelectionVisual(0.95F, 0.95F, 1.0F, 0.0F, 0.90F, 0.18F);
+		new SelectionBoxRenderer.SelectionVisual(0.95F, 0.95F, 1.0F, 0.0F, 0.90F, 0.10F);
 	private static final SelectionBoxRenderer.SelectionVisual PREVIEW_SELECTION_VISUAL =
-		new SelectionBoxRenderer.SelectionVisual(0.95F, 0.95F, 1.0F, 0.0F, 0.55F, 0.10F);
+		new SelectionBoxRenderer.SelectionVisual(0.95F, 0.95F, 1.0F, 0.0F, 0.55F, 0.06F);
 	private static final SelectionState SELECTION_STATE = new SelectionState();
 	private static final SnapshotCaptureScheduler SNAPSHOT_CAPTURE_SCHEDULER = new SnapshotCaptureScheduler();
 	private static final URI DESIGN_DAEMON_URI = URI.create("http://127.0.0.1:4867");

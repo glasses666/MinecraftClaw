@@ -2,7 +2,6 @@ package io.openclaw.minecraftclaw.client;
 
 import java.util.Map;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.fluid.FluidState;
@@ -42,7 +41,7 @@ final class PreviewBlockRenderView implements net.minecraft.world.BlockRenderVie
 
 	@Override
 	public BlockState getBlockState(BlockPos pos) {
-		return previewStates.getOrDefault(pos, Blocks.AIR.getDefaultState());
+		return previewStates.getOrDefault(pos, world.getBlockState(pos));
 	}
 
 	@Override

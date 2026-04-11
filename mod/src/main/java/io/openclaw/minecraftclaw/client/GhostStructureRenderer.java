@@ -27,6 +27,8 @@ public final class GhostStructureRenderer {
 	private static final float GHOST_GREEN = 0.96F;
 	private static final float GHOST_BLUE = 1.00F;
 	private static final float GHOST_ALPHA = 0.62F;
+	private static final float GHOST_POLYGON_OFFSET_FACTOR = -1.0F;
+	private static final float GHOST_POLYGON_OFFSET_UNITS = -0.6F;
 
 	private static RuntimeBlueprintPayload cachedBlueprint;
 	private static BlockPos cachedSelectionMin;
@@ -56,8 +58,9 @@ public final class GhostStructureRenderer {
 
 		RenderSystem.enableBlend();
 		RenderSystem.defaultBlendFunc();
-		RenderSystem.disableCull();
 		RenderSystem.depthMask(false);
+		RenderSystem.enablePolygonOffset();
+		RenderSystem.polygonOffset(GHOST_POLYGON_OFFSET_FACTOR, GHOST_POLYGON_OFFSET_UNITS);
 
 		VertexConsumerProvider.Immediate immediate = VertexConsumerProvider.immediate(
 			new BufferBuilder(RenderLayer.getTranslucentMovingBlock().getExpectedBufferSize())
@@ -93,8 +96,9 @@ public final class GhostStructureRenderer {
 		}
 
 		immediate.draw(RenderLayer.getTranslucentMovingBlock());
+		RenderSystem.polygonOffset(0.0F, 0.0F);
+		RenderSystem.disablePolygonOffset();
 		RenderSystem.depthMask(true);
-		RenderSystem.enableCull();
 		RenderSystem.disableBlend();
 	}
 
