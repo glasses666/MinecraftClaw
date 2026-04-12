@@ -12,6 +12,8 @@ import java.time.Duration;
 
 public final class DesignDaemonClient {
 	private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
+	private static final Duration GENERATION_TIMEOUT = Duration.ofMinutes(9);
+	private static final Duration HEALTH_TIMEOUT = Duration.ofSeconds(5);
 	private final HttpClient httpClient;
 	private final URI baseUri;
 	private final String bearerToken;
@@ -24,7 +26,7 @@ public final class DesignDaemonClient {
 
 	public DesignCandidateResponsePayload generate(DesignGenerationRequestPayload request) throws IOException, InterruptedException {
 		HttpRequest httpRequest = HttpRequest.newBuilder(baseUri.resolve("/design/generate"))
-			.timeout(Duration.ofSeconds(30))
+			.timeout(GENERATION_TIMEOUT)
 			.header("authorization", "Bearer " + bearerToken)
 			.header("content-type", "application/json")
 			.POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(request), StandardCharsets.UTF_8))
@@ -40,7 +42,7 @@ public final class DesignDaemonClient {
 	public boolean isHealthy() {
 		try {
 			HttpRequest httpRequest = HttpRequest.newBuilder(baseUri.resolve("/health"))
-				.timeout(Duration.ofSeconds(5))
+				.timeout(HEALTH_TIMEOUT)
 				.header("authorization", "Bearer " + bearerToken)
 				.GET()
 				.build();

@@ -59,12 +59,244 @@ test("model generator omits authorization when api key is empty and retries once
       snapshot
     );
 
-    assert.equal(providerCalls.length, 2);
+    assert.equal(providerCalls.length, 4);
     assert.equal(providerCalls[0]?.authorization, undefined);
     assert.equal(providerCalls[0]?.body.model, "gpt-4.1-mini");
+    assert.deepEqual(providerCalls[0]?.body.response_format, { type: "json_object" });
     assert.equal(typeof providerCalls[0]?.body.messages[1]?.content, "string");
     assert.equal(result.candidates.length, 3);
     assert.equal(result.provider.model, "gpt-4.1-mini");
+  } finally {
+    await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("model generator synthesizes optional fields when the model omits visual blueprint and materials", async () => {
+  const fixture = await createSnapshotFixture();
+  const providerServer = createServer(async (_request, response) => {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              candidates: buildModelCandidates().map((candidate) => ({
+                candidateId: candidate.candidateId,
+                title: candidate.title,
+                description: candidate.description,
+                styleTags: candidate.styleTags,
+                localBlueprintJson: candidate.localBlueprintJson
+              }))
+            })
+          }
+        }
+      ]
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, "127.0.0.1", resolve));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  try {
+    const snapshot = await loadDesignSnapshot(fixture.rootDir);
+    const result = await generateModelDesignCandidates(
+      {
+        ...sampleRequest(fixture.rootDir),
+        baseUrl: `http://127.0.0.1:${(address as AddressInfo).port}/v1`
+      },
+      snapshot
+    );
+
+    assert.equal(result.candidates.length, 3);
+    assert.ok(result.candidates[0]?.visualBlueprint.legend["W1"]);
+    assert.ok(result.candidates[0]?.visualBlueprint.slices.length > 0);
+    assert.deepEqual(result.candidates[0]?.materialsRequired, [
+      {
+        itemId: "minecraft:spruce_planks",
+        required: 9
+      }
+    ]);
+  } finally {
+    await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("model generator ignores malformed visual blueprint payloads and falls back to local synthesis", async () => {
+  const fixture = await createSnapshotFixture();
+  const providerServer = createServer(async (_request, response) => {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              candidateId: "candidate-1",
+              title: "Candidate 1",
+              description: "A generated design candidate.",
+              styleTags: ["compact", "coastal"],
+              visualBlueprint: {
+                description: "freeform prose that should be ignored",
+                materials: ["minecraft:spruce_planks"]
+              },
+              localBlueprintJson: buildModelCandidates()[0]?.localBlueprintJson
+            })
+          }
+        }
+      ]
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, "127.0.0.1", resolve));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  try {
+    const snapshot = await loadDesignSnapshot(fixture.rootDir);
+    const result = await generateModelDesignCandidates(
+      {
+        ...sampleRequest(fixture.rootDir),
+        baseUrl: `http://127.0.0.1:${(address as AddressInfo).port}/v1`
+      },
+      snapshot
+    );
+
+    assert.equal(result.candidates.length, 3);
+    assert.ok(result.candidates[0]?.visualBlueprint.legend["W1"]);
+    assert.ok(result.candidates[0]?.visualBlueprint.slices.length > 0);
+  } finally {
+    await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("model generator normalizes tolerant runtime blueprint field aliases from model output", async () => {
+  const fixture = await createSnapshotFixture();
+  const providerServer = createServer(async (_request, response) => {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              candidateId: "candidate-1",
+              title: "Candidate 1",
+              description: "A generated design candidate.",
+              localBlueprintJson: {
+                width: 12,
+                depth: 12,
+                height: 10,
+                steps: [
+                  {
+                    kind: "fill",
+                    from: { x: 1, y: 1, z: 1 },
+                    to: { x: 3, y: 1, z: 3 },
+                    block: "minecraft:spruce_planks"
+                  },
+                  {
+                    kind: "block",
+                    x: 4,
+                    y: 1,
+                    z: 4,
+                    block: "minecraft:lantern"
+                  }
+                ]
+              }
+            })
+          }
+        }
+      ]
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, "127.0.0.1", resolve));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  try {
+    const snapshot = await loadDesignSnapshot(fixture.rootDir);
+    const result = await generateModelDesignCandidates(
+      {
+        ...sampleRequest(fixture.rootDir),
+        baseUrl: `http://127.0.0.1:${(address as AddressInfo).port}/v1`
+      },
+      snapshot
+    );
+
+    assert.equal(result.candidates.length, 3);
+    assert.equal(result.candidates[0]?.localBlueprintJson.id, "candidate-1");
+    assert.deepEqual(result.candidates[0]?.localBlueprintJson.steps[0], {
+      kind: "fill",
+      from: { x: 1, y: 1, z: 1 },
+      to: { x: 3, y: 1, z: 3 },
+      blockId: "minecraft:spruce_planks"
+    });
+    assert.deepEqual(result.candidates[0]?.localBlueprintJson.steps[1], {
+      kind: "block",
+      at: { x: 4, y: 1, z: 4 },
+      blockId: "minecraft:lantern"
+    });
+  } finally {
+    await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("model generator tolerates loose materialsRequired entries from model output", async () => {
+  const fixture = await createSnapshotFixture();
+  const providerServer = createServer(async (_request, response) => {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              candidateId: "candidate-1",
+              title: "Candidate 1",
+              description: "A generated design candidate.",
+              materialsRequired: [
+                { item: "minecraft:spruce_planks" },
+                { itemId: "minecraft:glass_pane", count: 8 }
+              ],
+              localBlueprintJson: buildModelCandidates()[0]?.localBlueprintJson
+            })
+          }
+        }
+      ]
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, "127.0.0.1", resolve));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  try {
+    const snapshot = await loadDesignSnapshot(fixture.rootDir);
+    const result = await generateModelDesignCandidates(
+      {
+        ...sampleRequest(fixture.rootDir),
+        baseUrl: `http://127.0.0.1:${(address as AddressInfo).port}/v1`
+      },
+      snapshot
+    );
+
+    assert.equal(result.candidates.length, 3);
+    assert.deepEqual(result.candidates[0]?.materialsRequired, [
+      {
+        itemId: "minecraft:spruce_planks",
+        required: 9
+      }
+    ]);
   } finally {
     await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
   }
@@ -108,6 +340,173 @@ test("model generator includes image inputs when vision is enabled", async () =>
     const userContent = capturedBody.messages[1].content;
     assert.ok(Array.isArray(userContent));
     assert.ok(userContent.some((entry: any) => entry.type === "image_url"));
+  } finally {
+    await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("model generator normalizes object-shaped candidate collections from tolerant models", async () => {
+  const fixture = await createSnapshotFixture();
+  const providerServer = createServer(async (_request, response) => {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify({
+              candidates: {
+                first: {
+                  candidateId: "candidate-1",
+                  title: "Candidate 1",
+                  description: "A generated design candidate.",
+                  styleTags: { primary: "compact", secondary: "coastal" },
+                  visualBlueprint: {
+                    legend: {
+                      W1: {
+                        token: "W1",
+                        label: "spruce planks",
+                        blockIds: "minecraft:spruce_planks"
+                      }
+                    },
+                    slices: {
+                      ground: {
+                        y: 1,
+                        rows: ["W1 W1 W1", "W1 . W1", "W1 W1 W1"]
+                      }
+                    }
+                  },
+                  localBlueprintJson: {
+                    id: "candidate-1",
+                    width: 12,
+                    depth: 12,
+                    height: 10,
+                    steps: [
+                      {
+                        kind: "fill",
+                        from: { x: 1, y: 1, z: 1 },
+                        to: { x: 3, y: 1, z: 3 },
+                        blockId: "minecraft:spruce_planks"
+                      }
+                    ]
+                  },
+                  materialsRequired: {
+                    "minecraft:spruce_planks": 9
+                  }
+                },
+                second: buildModelCandidates()[1],
+                third: buildModelCandidates()[2]
+              }
+            })
+          }
+        }
+      ]
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, "127.0.0.1", resolve));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  try {
+    const snapshot = await loadDesignSnapshot(fixture.rootDir);
+    const result = await generateModelDesignCandidates(
+      {
+        ...sampleRequest(fixture.rootDir),
+        baseUrl: `http://127.0.0.1:${(address as AddressInfo).port}/v1`
+      },
+      snapshot
+    );
+
+    assert.equal(result.candidates.length, 3);
+    assert.deepEqual(result.candidates[0]?.styleTags, ["compact", "coastal"]);
+    assert.deepEqual(result.candidates[0]?.materialsRequired, [
+      {
+        itemId: "minecraft:spruce_planks",
+        required: 9
+      }
+    ]);
+  } finally {
+    await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("model generator accepts a top-level candidate array from tolerant models", async () => {
+  const fixture = await createSnapshotFixture();
+  const providerServer = createServer(async (_request, response) => {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify(buildModelCandidates())
+          }
+        }
+      ]
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, "127.0.0.1", resolve));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  try {
+    const snapshot = await loadDesignSnapshot(fixture.rootDir);
+    const result = await generateModelDesignCandidates(
+      {
+        ...sampleRequest(fixture.rootDir),
+        baseUrl: `http://127.0.0.1:${(address as AddressInfo).port}/v1`
+      },
+      snapshot
+    );
+
+    assert.equal(result.candidates.length, 3);
+    assert.equal(result.candidates[2]?.candidateId, "candidate-3");
+  } finally {
+    await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("model generator accepts a top-level single candidate object from one-shot models", async () => {
+  const fixture = await createSnapshotFixture();
+  const candidate = buildModelCandidates()[0];
+  const providerServer = createServer(async (_request, response) => {
+    response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+    response.end(JSON.stringify({
+      id: "chatcmpl-test",
+      choices: [
+        {
+          index: 0,
+          message: {
+            role: "assistant",
+            content: JSON.stringify(candidate)
+          }
+        }
+      ]
+    }));
+  });
+
+  await new Promise<void>((resolve) => providerServer.listen(0, "127.0.0.1", resolve));
+  const address = providerServer.address();
+  assert.ok(address && typeof address !== "string");
+
+  try {
+    const snapshot = await loadDesignSnapshot(fixture.rootDir);
+    const result = await generateModelDesignCandidates(
+      {
+        ...sampleRequest(fixture.rootDir),
+        baseUrl: `http://127.0.0.1:${(address as AddressInfo).port}/v1`
+      },
+      snapshot
+    );
+
+    assert.equal(result.candidates.length, 3);
+    assert.equal(result.candidates[0]?.candidateId, "candidate-1");
   } finally {
     await new Promise<void>((resolve, reject) => providerServer.close((error) => error ? reject(error) : resolve()));
   }
